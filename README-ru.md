@@ -2,9 +2,18 @@
 
 # Docker AI Stack
 
-[![Лицензия: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
+[![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![Лицензия: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-Разверните полный self-hosted AI-стек на собственном сервере одной командой. Все сервисы автоматически настраиваются с безопасными значениями по умолчанию при первом запуске. Обработка аудио (Whisper, Kokoro), эмбеддинги и LLM-инференс (Ollama) выполняются локально. При использовании LiteLLM с внешними провайдерами (например, OpenAI, Anthropic) ваши данные будут отправляться этим провайдерам.
+Разверните полный self-hosted AI-стек на собственном сервере одной командой.
+
+- Без настройки: все сервисы автоматически конфигурируются при первом запуске
+- Безопасность: Ollama, LiteLLM и MCP Gateway автоматически генерируют API-ключи
+- Приватность: аудио, эмбеддинги и LLM-инференс выполняются локально — данные не отправляются третьим лицам
+- Опциональная авторизация: Whisper, Kokoro и Embeddings работают без API-ключей по умолчанию (задайте ключи через env-файлы для публичных развёртываний)
+- [Облегчённые стеки](#облегчённые-стеки) с меньшими требованиями к памяти (от ~2.5 ГБ)
+- GPU-ускорение через NVIDIA CUDA
+
+**Примечание:** При использовании LiteLLM с внешними провайдерами (например, OpenAI, Anthropic) ваши данные будут отправляться этим провайдерам.
 
 **Включённые сервисы:**
 
@@ -57,6 +66,12 @@ cd docker-ai-stack
 docker compose up -d
 ```
 
+**Загрузка модели** (обязательно перед отправкой LLM-запросов):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
+
 Проверьте логи для подтверждения готовности всех сервисов:
 
 ```bash
@@ -91,6 +106,85 @@ docker compose -f docker-compose.cuda.yml up -d
 ```
 
 **Требования:** GPU NVIDIA, [драйвер NVIDIA](https://www.nvidia.com/en-us/drivers/) 535+, и [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), установленный на хосте. CUDA-образы поддерживают только `linux/amd64`.
+
+## Облегчённые стеки
+
+Не нужен полный стек? Используйте преднастроенное подмножество из папки `stacks/`:
+
+| Стек | Сервисы | Память | Сценарий использования |
+|---|---|---|---|
+| **[voice-pipeline](stacks/voice-pipeline/README-ru.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 ГБ | Речь в текст → LLM → текст в речь |
+| **[rag-pipeline](stacks/rag-pipeline/README-ru.md)** | Ollama + LiteLLM + Embeddings | ~3 ГБ | Семантический поиск + LLM Q&A |
+| **[ai-tools](stacks/ai-tools/README-ru.md)** | Ollama + LiteLLM + MCP Gateway | ~3 ГБ | AI-ассистент для разработки с доступом к инструментам |
+| **[chat-only](stacks/chat-only/README-ru.md)** | Ollama + LiteLLM | ~2.5 ГБ | Минимальная локальная замена ChatGPT |
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack/stacks/voice-pipeline  # или rag-pipeline, ai-tools, chat-only
+docker compose up -d
+```
+
+## Запуск без Docker Compose
+
+Если вы предпочитаете использовать команды `docker run` напрямую, сначала создайте общую сеть для связи между сервисами:
+
+```bash
+docker network create ai-stack
+```
+
+Затем запустите каждый сервис в общей сети:
+
+```bash
+# Ollama (LLM)
+docker run -d --name ollama --restart always \
+    --network ai-stack \
+    -v ollama-data:/var/lib/ollama \
+    hwdsl2/ollama-server
+
+# LiteLLM (AI-шлюз)
+docker run -d --name litellm --restart always \
+    --network ai-stack \
+    -p 4000:4000 \
+    -e LITELLM_OLLAMA_BASE_URL=http://ollama:11434 \
+    -v litellm-data:/etc/litellm \
+    hwdsl2/litellm-server
+
+# Embeddings
+docker run -d --name embeddings --restart always \
+    --network ai-stack \
+    -p 8000:8000 \
+    -v embeddings-data:/var/lib/embeddings \
+    hwdsl2/embeddings-server
+
+# Whisper (STT)
+docker run -d --name whisper --restart always \
+    --network ai-stack \
+    -p 9000:9000 \
+    -v whisper-data:/var/lib/whisper \
+    hwdsl2/whisper-server
+
+# Kokoro (TTS)
+docker run -d --name kokoro --restart always \
+    --network ai-stack \
+    -p 8880:8880 \
+    -v kokoro-data:/var/lib/kokoro \
+    hwdsl2/kokoro-server
+
+# MCP Gateway
+docker run -d --name mcp --restart always \
+    --network ai-stack \
+    -p 3000:3000 \
+    -v mcp-data:/var/lib/mcp \
+    hwdsl2/mcp-gateway
+```
+
+**Примечание:** Общая сеть позволяет сервисам обращаться друг к другу по имени контейнера (например, LiteLLM подключается к Ollama через `http://ollama:11434`). Вы можете запускать только нужные сервисы — не обязательно запускать все.
+
+**Загрузка модели** (обязательно перед отправкой LLM-запросов):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
 
 ## Подключение MCP Gateway к LiteLLM
 

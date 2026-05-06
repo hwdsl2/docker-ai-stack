@@ -2,9 +2,18 @@
 
 # Docker AI Stack
 
-[![授權協議: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
+[![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![授權協議: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-一鍵在您自己的伺服器上部署完整的自託管 AI 技術堆疊。所有服務在首次啟動時自動配置安全預設值。音訊處理（Whisper、Kokoro）、向量嵌入和大型語言模型推理（Ollama）均在本機執行。當使用 LiteLLM 連接外部提供商（如 OpenAI、Anthropic）時，您的資料將發送給這些提供商。
+一鍵在您自己的伺服器上部署完整的自託管 AI 技術堆疊。
+
+- 零配置：所有服務在首次啟動時自動配置
+- 安全：Ollama、LiteLLM 和 MCP Gateway 自動產生 API 金鑰
+- 隱私：音訊、向量嵌入和大型語言模型推理均在本機執行 — 無資料發送給第三方
+- 可選驗證：Whisper、Kokoro 和 Embeddings 預設無需 API 金鑰（對外網路部署時可透過 env 檔案設定金鑰）
+- 提供[輕量級技術堆疊](#輕量級技術堆疊)，降低記憶體需求（最低約 2.5 GB）
+- 支援 NVIDIA CUDA GPU 加速
+
+**注：** 當使用 LiteLLM 連接外部提供商（如 OpenAI、Anthropic）時，您的資料將發送給這些提供商。
 
 **包含的服務：**
 
@@ -57,6 +66,12 @@ cd docker-ai-stack
 docker compose up -d
 ```
 
+**拉取模型**（發出 LLM 請求前必須執行）：
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
+
 檢視日誌確認所有服務已就緒：
 
 ```bash
@@ -91,6 +106,85 @@ docker compose -f docker-compose.cuda.yml up -d
 ```
 
 **需求：** NVIDIA GPU、[NVIDIA 驅動程式](https://www.nvidia.com/en-us/drivers/) 535+，以及在主機上安裝 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。CUDA 映像檔僅支援 `linux/amd64`。
+
+## 輕量級技術堆疊
+
+不需要完整技術堆疊？使用 `stacks/` 資料夾中的預配置子集：
+
+| 技術堆疊 | 服務 | 記憶體 | 使用場景 |
+|---|---|---|---|
+| **[voice-pipeline](stacks/voice-pipeline/README-zh-Hant.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 GB | 語音轉文字 → LLM → 文字轉語音 |
+| **[rag-pipeline](stacks/rag-pipeline/README-zh-Hant.md)** | Ollama + LiteLLM + Embeddings | ~3 GB | 語意搜尋 + LLM 問答 |
+| **[ai-tools](stacks/ai-tools/README-zh-Hant.md)** | Ollama + LiteLLM + MCP Gateway | ~3 GB | AI 程式設計助手，支援工具存取 |
+| **[chat-only](stacks/chat-only/README-zh-Hant.md)** | Ollama + LiteLLM | ~2.5 GB | 最小化本機 ChatGPT 替代方案 |
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack/stacks/voice-pipeline  # 或 rag-pipeline、ai-tools、chat-only
+docker compose up -d
+```
+
+## 不使用 Docker Compose 執行
+
+如需直接使用 `docker run` 指令，請先建立共享網路以便服務之間通訊：
+
+```bash
+docker network create ai-stack
+```
+
+然後在共享網路上啟動各服務：
+
+```bash
+# Ollama (LLM)
+docker run -d --name ollama --restart always \
+    --network ai-stack \
+    -v ollama-data:/var/lib/ollama \
+    hwdsl2/ollama-server
+
+# LiteLLM (AI 閘道)
+docker run -d --name litellm --restart always \
+    --network ai-stack \
+    -p 4000:4000 \
+    -e LITELLM_OLLAMA_BASE_URL=http://ollama:11434 \
+    -v litellm-data:/etc/litellm \
+    hwdsl2/litellm-server
+
+# Embeddings
+docker run -d --name embeddings --restart always \
+    --network ai-stack \
+    -p 8000:8000 \
+    -v embeddings-data:/var/lib/embeddings \
+    hwdsl2/embeddings-server
+
+# Whisper (STT)
+docker run -d --name whisper --restart always \
+    --network ai-stack \
+    -p 9000:9000 \
+    -v whisper-data:/var/lib/whisper \
+    hwdsl2/whisper-server
+
+# Kokoro (TTS)
+docker run -d --name kokoro --restart always \
+    --network ai-stack \
+    -p 8880:8880 \
+    -v kokoro-data:/var/lib/kokoro \
+    hwdsl2/kokoro-server
+
+# MCP Gateway
+docker run -d --name mcp --restart always \
+    --network ai-stack \
+    -p 3000:3000 \
+    -v mcp-data:/var/lib/mcp \
+    hwdsl2/mcp-gateway
+```
+
+**注：** 共享網路允許服務透過容器名稱互相存取（例如 LiteLLM 透過 `http://ollama:11434` 連接 Ollama）。您可以只啟動需要的服務 — 不必全部執行。
+
+**拉取模型**（發出 LLM 請求前必須執行）：
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
 
 ## 將 MCP Gateway 連接到 LiteLLM
 

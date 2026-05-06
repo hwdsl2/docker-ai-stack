@@ -1,0 +1,35 @@
+services:
+  ollama:
+    image: hwdsl2/ollama-server
+    container_name: ollama
+    restart: always
+    volumes:
+      - ollama-data:/var/lib/ollama
+      # - ./ollama.env:/ollama.env:ro  # optional: custom config
+
+  litellm:
+    image: hwdsl2/litellm-server
+    container_name: litellm
+    restart: always
+    ports:
+      - "4000:4000/tcp"
+    environment:
+      - LITELLM_OLLAMA_BASE_URL=http://ollama:11434
+    volumes:
+      - litellm-data:/etc/litellm
+      # - ./litellm.env:/litellm.env:ro  # optional: custom config
+
+  embeddings:
+    image: hwdsl2/embeddings-server
+    container_name: embeddings
+    restart: always
+    ports:
+      - "8000:8000/tcp"
+    volumes:
+      - embeddings-data:/var/lib/embeddings
+      # - ./embed.env:/embed.env:ro  # optional: custom config
+
+volumes:
+  ollama-data:
+  litellm-data:
+  embeddings-data:

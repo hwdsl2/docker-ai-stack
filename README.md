@@ -2,9 +2,18 @@
 
 # Docker AI Stack
 
-[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
+[![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-Deploy a complete, self-hosted AI stack on your own server with a single command. All services auto-configure with secure defaults on first start. Audio processing (Whisper, Kokoro), embeddings, and LLM inference (Ollama) all run locally. When using LiteLLM with external providers (e.g., OpenAI, Anthropic), your data will be sent to those providers.
+Deploy a complete, self-hosted AI stack on your own server with a single command.
+
+- Zero-config: all services auto-configure on first start
+- Secure: Ollama, LiteLLM, and MCP Gateway generate API keys automatically
+- Private: audio, embeddings, and LLM inference all run locally — no data sent to third parties
+- Optional auth: Whisper, Kokoro, and Embeddings work without API keys by default (set keys via env files for public deployments)
+- [Lightweight stacks](#lightweight-stacks) for lower memory requirements (as low as ~2.5 GB)
+- GPU acceleration via NVIDIA CUDA
+
+**Note:** When using LiteLLM with external providers (e.g., OpenAI, Anthropic), your data will be sent to those providers.
 
 **Services included:**
 
@@ -57,6 +66,12 @@ cd docker-ai-stack
 docker compose up -d
 ```
 
+**Pull a model** (required before making LLM requests):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
+
 Check the logs to confirm all services are ready:
 
 ```bash
@@ -91,6 +106,85 @@ docker compose -f docker-compose.cuda.yml up -d
 ```
 
 **Requirements:** NVIDIA GPU, [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) 535+, and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the host. CUDA images are `linux/amd64` only.
+
+## Lightweight stacks
+
+Don't need the full stack? Use a pre-configured subset from the `stacks/` folder:
+
+| Stack | Services | Memory | Use case |
+|---|---|---|---|
+| **[voice-pipeline](stacks/voice-pipeline/)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 GB | Speech-to-text → LLM → text-to-speech |
+| **[rag-pipeline](stacks/rag-pipeline/)** | Ollama + LiteLLM + Embeddings | ~3 GB | Semantic search + LLM Q&A |
+| **[ai-tools](stacks/ai-tools/)** | Ollama + LiteLLM + MCP Gateway | ~3 GB | AI coding assistant with tool access |
+| **[chat-only](stacks/chat-only/)** | Ollama + LiteLLM | ~2.5 GB | Minimal local ChatGPT replacement |
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack/stacks/voice-pipeline  # or rag-pipeline, ai-tools, chat-only
+docker compose up -d
+```
+
+## Running without Docker Compose
+
+If you prefer using `docker run` commands directly, first create a shared network so services can communicate:
+
+```bash
+docker network create ai-stack
+```
+
+Then start each service on the shared network:
+
+```bash
+# Ollama (LLM)
+docker run -d --name ollama --restart always \
+    --network ai-stack \
+    -v ollama-data:/var/lib/ollama \
+    hwdsl2/ollama-server
+
+# LiteLLM (AI gateway)
+docker run -d --name litellm --restart always \
+    --network ai-stack \
+    -p 4000:4000 \
+    -e LITELLM_OLLAMA_BASE_URL=http://ollama:11434 \
+    -v litellm-data:/etc/litellm \
+    hwdsl2/litellm-server
+
+# Embeddings
+docker run -d --name embeddings --restart always \
+    --network ai-stack \
+    -p 8000:8000 \
+    -v embeddings-data:/var/lib/embeddings \
+    hwdsl2/embeddings-server
+
+# Whisper (STT)
+docker run -d --name whisper --restart always \
+    --network ai-stack \
+    -p 9000:9000 \
+    -v whisper-data:/var/lib/whisper \
+    hwdsl2/whisper-server
+
+# Kokoro (TTS)
+docker run -d --name kokoro --restart always \
+    --network ai-stack \
+    -p 8880:8880 \
+    -v kokoro-data:/var/lib/kokoro \
+    hwdsl2/kokoro-server
+
+# MCP Gateway
+docker run -d --name mcp --restart always \
+    --network ai-stack \
+    -p 3000:3000 \
+    -v mcp-data:/var/lib/mcp \
+    hwdsl2/mcp-gateway
+```
+
+**Note:** The shared network allows services to reach each other by container name (e.g., LiteLLM connects to Ollama via `http://ollama:11434`). You can start only the services you need — they don't all have to run together.
+
+**Pull a model** (required before making LLM requests):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
 
 ## Connect MCP Gateway to LiteLLM
 
