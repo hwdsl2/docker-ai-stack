@@ -201,12 +201,19 @@ mcp_servers:
 
 轉錄語音問題，透過 Ollama 取得本機 LLM 回應，然後轉換為語音：
 
+**提示：** 需要範例音訊檔案？可以從 [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk) 儲存庫下載這個英語語音範例（WAV 格式，MIT 授權）：
+
+```bash
+curl -L -o sample_speech.wav \
+    "https://github.com/Azure-Samples/cognitive-services-speech-sdk/raw/master/sampledata/audiofiles/katiesteve.wav"
+```
+
 ```bash
 LITELLM_KEY=$(docker exec litellm litellm_manage --getkey)
 
 # 第 1 步：將音訊轉錄為文字（Whisper）
 TEXT=$(curl -s http://localhost:9000/v1/audio/transcriptions \
-    -F file=@question.mp3 -F model=whisper-1 | jq -r .text)
+    -F file=@sample_speech.wav -F model=whisper-1 | jq -r .text)
 
 # 第 2 步：透過 LiteLLM 將文字傳送至 Ollama 並取得回應
 RESPONSE=$(curl -s http://localhost:4000/v1/chat/completions \

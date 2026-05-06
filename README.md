@@ -201,12 +201,19 @@ mcp_servers:
 
 Transcribe a spoken question, get a local LLM response via Ollama, and convert it to speech:
 
+**Tip:** Need a sample audio file? Download this English speech sample (WAV, MIT License) from the [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk) repository:
+
+```bash
+curl -L -o sample_speech.wav \
+    "https://github.com/Azure-Samples/cognitive-services-speech-sdk/raw/master/sampledata/audiofiles/katiesteve.wav"
+```
+
 ```bash
 LITELLM_KEY=$(docker exec litellm litellm_manage --getkey)
 
 # Step 1: Transcribe audio to text (Whisper)
 TEXT=$(curl -s http://localhost:9000/v1/audio/transcriptions \
-    -F file=@question.mp3 -F model=whisper-1 | jq -r .text)
+    -F file=@sample_speech.wav -F model=whisper-1 | jq -r .text)
 
 # Step 2: Send text to Ollama via LiteLLM and get a response
 RESPONSE=$(curl -s http://localhost:4000/v1/chat/completions \

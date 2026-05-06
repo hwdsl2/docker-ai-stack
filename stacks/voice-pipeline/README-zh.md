@@ -116,12 +116,19 @@ docker compose up -d
 
 ## 示例
 
+**提示：** 需要示例音频文件？可以从 [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk) 仓库下载这个英语语音示例（WAV 格式，MIT 许可证）：
+
+```bash
+curl -L -o sample_speech.wav \
+    "https://github.com/Azure-Samples/cognitive-services-speech-sdk/raw/master/sampledata/audiofiles/katiesteve.wav"
+```
+
 ```bash
 LITELLM_KEY=$(docker exec litellm litellm_manage --getkey)
 
 # 将音频转录为文本
 TEXT=$(curl -s http://localhost:9000/v1/audio/transcriptions \
-    -F file=@question.mp3 -F model=whisper-1 | jq -r .text)
+    -F file=@sample_speech.wav -F model=whisper-1 | jq -r .text)
 
 # 获取 LLM 响应
 RESPONSE=$(curl -s http://localhost:4000/v1/chat/completions \
