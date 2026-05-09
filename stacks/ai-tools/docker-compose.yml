@@ -5,7 +5,14 @@ services:
     restart: always
     volumes:
       - ollama-data:/var/lib/ollama
+      - ollama-shared:/var/lib/ollama-shared
       # - ./ollama.env:/ollama.env:ro  # optional: custom config
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:11434/"]
+      interval: 5s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
 
   litellm:
     image: hwdsl2/litellm-server
@@ -16,24 +23,42 @@ services:
     environment:
       - LITELLM_OLLAMA_BASE_URL=http://ollama:11434
       - LITELLM_MCP_URL=http://mcp:3000/mcp
-      # - LITELLM_MCP_API_KEY=  # set after first start: docker exec mcp mcp_manage --showkey
     volumes:
       - litellm-data:/etc/litellm
+      - ollama-shared:/var/lib/ollama-shared:ro
+      - mcp-shared:/var/lib/mcp-shared:ro
       # - ./litellm.env:/litellm.env:ro  # optional: custom config
     depends_on:
-      - mcp
+      ollama:
+        condition: service_healthy
+      mcp:
+        condition: service_healthy
 
   mcp:
     image: hwdsl2/mcp-gateway
     container_name: mcp
     restart: always
     ports:
-      - "3000:3000/tcp"
+      - "127.0.0.1:3000:3000/tcp"
     volumes:
       - mcp-data:/var/lib/mcp
+      - mcp-shared:/var/lib/mcp-shared
       # - ./mcp.env:/mcp.env:ro  # optional: custom config
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
 
 volumes:
   ollama-data:
+    name: ollama-data
+  ollama-shared:
+    name: ollama-shared
   litellm-data:
+    name: litellm-data
   mcp-data:
+    name: mcp-data
+  mcp-shared:
+    name: mcp-shared

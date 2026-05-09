@@ -5,7 +5,14 @@ services:
     restart: always
     volumes:
       - ollama-data:/var/lib/ollama
+      - ollama-shared:/var/lib/ollama-shared
       # - ./ollama.env:/ollama.env:ro  # optional: custom config
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:11434/"]
+      interval: 5s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
 
   litellm:
     image: hwdsl2/litellm-server
@@ -17,8 +24,16 @@ services:
       - LITELLM_OLLAMA_BASE_URL=http://ollama:11434
     volumes:
       - litellm-data:/etc/litellm
+      - ollama-shared:/var/lib/ollama-shared:ro
       # - ./litellm.env:/litellm.env:ro  # optional: custom config
+    depends_on:
+      ollama:
+        condition: service_healthy
 
 volumes:
   ollama-data:
+    name: ollama-data
+  ollama-shared:
+    name: ollama-shared
   litellm-data:
+    name: litellm-data

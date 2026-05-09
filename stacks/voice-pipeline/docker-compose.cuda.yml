@@ -5,7 +5,14 @@ services:
     restart: always
     volumes:
       - ollama-data:/var/lib/ollama
+      - ollama-shared:/var/lib/ollama-shared
       # - ./ollama.env:/ollama.env:ro  # optional: custom config
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:11434/"]
+      interval: 5s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
     deploy:
       resources:
         reservations:
@@ -24,14 +31,18 @@ services:
       - LITELLM_OLLAMA_BASE_URL=http://ollama:11434
     volumes:
       - litellm-data:/etc/litellm
+      - ollama-shared:/var/lib/ollama-shared:ro
       # - ./litellm.env:/litellm.env:ro  # optional: custom config
+    depends_on:
+      ollama:
+        condition: service_healthy
 
   whisper:
     image: hwdsl2/whisper-server:cuda
     container_name: whisper
     restart: always
     ports:
-      - "9000:9000/tcp"
+      - "127.0.0.1:9000:9000/tcp"
     volumes:
       - whisper-data:/var/lib/whisper
       # - ./whisper.env:/whisper.env:ro  # optional: custom config
@@ -48,7 +59,7 @@ services:
     container_name: kokoro
     restart: always
     ports:
-      - "8880:8880/tcp"
+      - "127.0.0.1:8880:8880/tcp"
     volumes:
       - kokoro-data:/var/lib/kokoro
       # - ./kokoro.env:/kokoro.env:ro  # optional: custom config
@@ -62,6 +73,12 @@ services:
 
 volumes:
   ollama-data:
+    name: ollama-data
+  ollama-shared:
+    name: ollama-shared
   litellm-data:
+    name: litellm-data
   whisper-data:
+    name: whisper-data
   kokoro-data:
+    name: kokoro-data
