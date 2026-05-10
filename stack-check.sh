@@ -142,7 +142,7 @@ if [ -n "$LITELLM" ]; then
       if http_post_ok "http://localhost:4000/v1/chat/completions" \
         -H "Authorization: Bearer $LITELLM_KEY" \
         -H "Content-Type: application/json" \
-        -d "{\"model\":\"ollama/${FIRST_MODEL%%:*}\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}"; then
+        -d "{\"model\":\"ollama/${FIRST_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":5}"; then
         pass "LLM routing works (ollama/$FIRST_MODEL)"
       else
         fail "LLM routing failed for ollama/$FIRST_MODEL"
