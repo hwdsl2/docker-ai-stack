@@ -20,8 +20,8 @@ graph LR
 
 | 服务 | 用途 | 默认端口 |
 |---|---|---|
-| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama)** | 运行本地 LLM 模型（llama3、qwen、mistral 等） | `11434` |
-| **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI 网关 — 将请求路由至 Ollama 及 100+ 供应商 | `4000` |
+| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh.md)** | 运行本地 LLM 模型（llama3、qwen、mistral 等） | `11434` |
+| **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)** | AI 网关 — 将请求路由至 Ollama 及 100+ 供应商 | `4000` |
 
 ## 快速开始
 
@@ -96,8 +96,8 @@ docker exec ollama ollama_manage --pull llama3.2:3b
 
 | 服务 | Env 文件 | 仓库 |
 |---|---|---|
-| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama) |
-| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm) |
+| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh.md) |
+| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md) |
 
 有关详细配置选项、API 参考和模型管理，请参阅各服务仓库的文档。
 

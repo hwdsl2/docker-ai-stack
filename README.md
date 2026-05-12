@@ -9,7 +9,7 @@ Deploy a complete, self-hosted AI stack on your own server with a single command
 - Zero-config: all services auto-configure on first start
 - Secure: Ollama, LiteLLM, and MCP Gateway generate API keys automatically
 - Private: audio, embeddings, and LLM inference all run locally — no data sent to third parties
-- Optional auth: Whisper, Kokoro, and Embeddings work without API keys by default (set keys via env files for public deployments)
+- Optional auth: Whisper, WhisperLive, Kokoro, Embeddings, and Docling work without API keys by default (set keys via env files for public deployments)
 - [Lightweight stacks](#lightweight-stacks) for lower memory requirements (as low as ~2.5 GB)
 - GPU acceleration via NVIDIA CUDA
 
@@ -23,13 +23,13 @@ Deploy a complete, self-hosted AI stack on your own server with a single command
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI gateway — routes requests to Ollama, OpenAI, Anthropic, and 100+ providers | `4000` |
 | **[Embeddings](https://github.com/hwdsl2/docker-embeddings)** | Converts text to vectors for semantic search and RAG | `8000` |
 | **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper)** | Transcribes spoken audio to text | `9000` |
+| **[WhisperLive (real-time STT)](https://github.com/hwdsl2/docker-whisper-live)** | Real-time speech-to-text transcription over WebSocket | `9090` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro)** | Converts text to natural-sounding speech | `8880` |
 | **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway)** | Provides MCP tools (filesystem, fetch, GitHub, search, databases) to AI clients | `3000` |
 | **[Docling](https://github.com/hwdsl2/docker-docling)** | Converts documents (PDF, DOCX, etc.) to structured text/Markdown | `5001` |
 
 **Also available:**
 
-- AI/Audio: [WhisperLive (real-time STT)](https://github.com/hwdsl2/docker-whisper-live)
 - VPN: [WireGuard](https://github.com/hwdsl2/docker-wireguard), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale)
 
 ## Architecture
@@ -37,7 +37,8 @@ Deploy a complete, self-hosted AI stack on your own server with a single command
 ```mermaid
 graph LR
     A["🎤 Audio input"] -->|transcribe| W["Whisper<br/>(speech-to-text)"]
-    D["📄 Documents"] -->|embed| E["Embeddings<br/>(text → vectors)"]
+    D["📄 Documents"] -->|parse| DC["Docling<br/>(document → text)"]
+    DC -->|embed| E["Embeddings<br/>(text → vectors)"]
     E -->|store| VDB["Vector DB<br/>(Qdrant, Chroma)"]
     W -->|query| E
     VDB -->|context| L["LiteLLM<br/>(AI gateway)"]
@@ -178,6 +179,13 @@ docker run -d --name kokoro --restart always \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
 
+# Docling (document parsing)
+docker run -d --name docling --restart always \
+    --network ai-stack \
+    -p 5001:5001 \
+    -v docling-data:/var/lib/docling \
+    hwdsl2/docling-server
+
 # MCP Gateway
 docker run -d --name mcp --restart always \
     --network ai-stack \
@@ -299,8 +307,10 @@ Each service can be configured with an optional env file. Copy the example env f
 | LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm) |
 | Embeddings | `embed.env` | [docker-embeddings](https://github.com/hwdsl2/docker-embeddings) |
 | Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper) |
+| WhisperLive | `whisper-live.env` | [docker-whisper-live](https://github.com/hwdsl2/docker-whisper-live) |
 | Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro) |
 | MCP Gateway | `mcp.env` | [docker-mcp-gateway](https://github.com/hwdsl2/docker-mcp-gateway) |
+| Docling | `docling.env` | [docker-docling](https://github.com/hwdsl2/docker-docling) |
 
 For detailed configuration options, API reference, and model management, see the documentation in each service's repository.
 

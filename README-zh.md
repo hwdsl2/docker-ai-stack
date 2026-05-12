@@ -9,7 +9,7 @@
 - 零配置：所有服务在首次启动时自动配置
 - 安全：Ollama、LiteLLM 和 MCP Gateway 自动生成 API 密钥
 - 隐私：音频、向量嵌入和大语言模型推理均在本地运行 — 无数据发送给第三方
-- 可选认证：Whisper、Kokoro 和 Embeddings 默认无需 API 密钥（面向公网部署时可通过 env 文件设置密钥）
+- 可选认证：Whisper、WhisperLive、Kokoro、Embeddings 和 Docling 默认无需 API 密钥（面向公网部署时可通过 env 文件设置密钥）
 - 提供[轻量级技术栈](#轻量级技术栈)，降低内存要求（最低约 2.5 GB）
 - 支持 NVIDIA CUDA GPU 加速
 
@@ -19,17 +19,17 @@
 
 | 服务 | 用途 | 默认端口 |
 |---|---|---|
-| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama)** | 运行本地大语言模型（llama3、qwen、mistral 等） | `11434` |
-| **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI 网关 — 将请求路由至 Ollama、OpenAI、Anthropic 及 100+ 提供商 | `4000` |
-| **[Embeddings](https://github.com/hwdsl2/docker-embeddings)** | 将文本转换为向量，用于语义搜索和 RAG | `8000` |
-| **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper)** | 将语音转录为文本 | `9000` |
-| **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro)** | 将文本转换为自然语音 | `8880` |
-| **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway)** | 为 AI 客户端提供 MCP 工具（文件系统、网页抓取、GitHub、搜索、数据库） | `3000` |
+| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh.md)** | 运行本地大语言模型（llama3、qwen、mistral 等） | `11434` |
+| **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)** | AI 网关 — 将请求路由至 Ollama、OpenAI、Anthropic 及 100+ 提供商 | `4000` |
+| **[Embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-zh.md)** | 将文本转换为向量，用于语义搜索和 RAG | `8000` |
+| **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh.md)** | 将语音转录为文本 | `9000` |
+| **[WhisperLive（实时语音转文本）](https://github.com/hwdsl2/docker-whisper-live/blob/main/README-zh.md)** | 通过 WebSocket 实时语音转文本 | `9090` |
+| **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md)** | 将文本转换为自然语音 | `8880` |
+| **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway/blob/main/README-zh.md)** | 为 AI 客户端提供 MCP 工具（文件系统、网页抓取、GitHub、搜索、数据库） | `3000` |
 | **[Docling](https://github.com/hwdsl2/docker-docling/blob/main/README-zh.md)** | 将文档（PDF、DOCX 等）转换为结构化文本/Markdown | `5001` |
 
 **另提供：**
 
-- AI/音频：[WhisperLive（实时语音转文本）](https://github.com/hwdsl2/docker-whisper-live)
 - VPN：[WireGuard](https://github.com/hwdsl2/docker-wireguard)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server)、[Headscale](https://github.com/hwdsl2/docker-headscale)
 
 ## 架构
@@ -37,7 +37,8 @@
 ```mermaid
 graph LR
     A["🎤 音频输入"] -->|转录| W["Whisper<br/>(语音转文本)"]
-    D["📄 文档"] -->|嵌入| E["Embeddings<br/>(文本 → 向量)"]
+    D["📄 文档"] -->|解析| DC["Docling<br/>(文档 → 文本)"]
+    DC -->|嵌入| E["Embeddings<br/>(文本 → 向量)"]
     E -->|存储| VDB["向量数据库<br/>(Qdrant, Chroma)"]
     W -->|查询| E
     VDB -->|上下文| L["LiteLLM<br/>(AI 网关)"]
@@ -178,6 +179,13 @@ docker run -d --name kokoro --restart always \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
 
+# Docling (文档解析)
+docker run -d --name docling --restart always \
+    --network ai-stack \
+    -p 5001:5001 \
+    -v docling-data:/var/lib/docling \
+    hwdsl2/docling-server
+
 # MCP Gateway
 docker run -d --name mcp --restart always \
     --network ai-stack \
@@ -295,12 +303,14 @@ curl -s http://localhost:3000/mcp \
 
 | 服务 | Env 文件 | 仓库 |
 |---|---|---|
-| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama) |
-| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm) |
-| Embeddings | `embed.env` | [docker-embeddings](https://github.com/hwdsl2/docker-embeddings) |
-| Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper) |
-| Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro) |
-| MCP Gateway | `mcp.env` | [docker-mcp-gateway](https://github.com/hwdsl2/docker-mcp-gateway) |
+| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh.md) |
+| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md) |
+| Embeddings | `embed.env` | [docker-embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-zh.md) |
+| Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh.md) |
+| WhisperLive | `whisper-live.env` | [docker-whisper-live](https://github.com/hwdsl2/docker-whisper-live/blob/main/README-zh.md) |
+| Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md) |
+| MCP Gateway | `mcp.env` | [docker-mcp-gateway](https://github.com/hwdsl2/docker-mcp-gateway/blob/main/README-zh.md) |
+| Docling | `docling.env` | [docker-docling](https://github.com/hwdsl2/docker-docling/blob/main/README-zh.md) |
 
 有关详细配置选项、API 参考和模型管理，请参阅各服务仓库的文档。
 

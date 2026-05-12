@@ -9,7 +9,7 @@
 - Без настройки: все сервисы автоматически конфигурируются при первом запуске
 - Безопасность: Ollama, LiteLLM и MCP Gateway автоматически генерируют API-ключи
 - Приватность: аудио, эмбеддинги и LLM-инференс выполняются локально — данные не отправляются третьим лицам
-- Опциональная авторизация: Whisper, Kokoro и Embeddings работают без API-ключей по умолчанию (задайте ключи через env-файлы для публичных развёртываний)
+- Опциональная авторизация: Whisper, WhisperLive, Kokoro, Embeddings и Docling работают без API-ключей по умолчанию (задайте ключи через env-файлы для публичных развёртываний)
 - [Облегчённые стеки](#облегчённые-стеки) с меньшими требованиями к памяти (от ~2.5 ГБ)
 - GPU-ускорение через NVIDIA CUDA
 
@@ -19,17 +19,17 @@
 
 | Сервис | Назначение | Порт по умолчанию |
 |---|---|---|
-| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama)** | Запуск локальных LLM-моделей (llama3, qwen, mistral и др.) | `11434` |
-| **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI-шлюз — маршрутизация запросов к Ollama, OpenAI, Anthropic и 100+ провайдерам | `4000` |
-| **[Embeddings](https://github.com/hwdsl2/docker-embeddings)** | Преобразование текста в векторы для семантического поиска и RAG | `8000` |
-| **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper)** | Транскрибация речи в текст | `9000` |
-| **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro)** | Преобразование текста в естественную речь | `8880` |
-| **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway)** | Предоставление MCP-инструментов (файловая система, веб, GitHub, поиск, базы данных) AI-клиентам | `3000` |
+| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-ru.md)** | Запуск локальных LLM-моделей (llama3, qwen, mistral и др.) | `11434` |
+| **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md)** | AI-шлюз — маршрутизация запросов к Ollama, OpenAI, Anthropic и 100+ провайдерам | `4000` |
+| **[Embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-ru.md)** | Преобразование текста в векторы для семантического поиска и RAG | `8000` |
+| **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md)** | Транскрибация речи в текст | `9000` |
+| **[WhisperLive (STT в реальном времени)](https://github.com/hwdsl2/docker-whisper-live/blob/main/README-ru.md)** | Транскрибация речи в реальном времени через WebSocket | `9090` |
+| **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-ru.md)** | Преобразование текста в естественную речь | `8880` |
+| **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway/blob/main/README-ru.md)** | Предоставление MCP-инструментов (файловая система, веб, GitHub, поиск, базы данных) AI-клиентам | `3000` |
 | **[Docling](https://github.com/hwdsl2/docker-docling/blob/main/README-ru.md)** | Конвертирует документы (PDF, DOCX и др.) в структурированный текст/Markdown | `5001` |
 
 **Также доступно:**
 
-- AI/Аудио: [WhisperLive (STT в реальном времени)](https://github.com/hwdsl2/docker-whisper-live)
 - VPN: [WireGuard](https://github.com/hwdsl2/docker-wireguard), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale)
 
 ## Архитектура
@@ -37,7 +37,8 @@
 ```mermaid
 graph LR
     A["🎤 Аудиовход"] -->|транскрибация| W["Whisper<br/>(речь в текст)"]
-    D["📄 Документы"] -->|эмбеддинг| E["Embeddings<br/>(текст → векторы)"]
+    D["📄 Документы"] -->|разбор| DC["Docling<br/>(документ → текст)"]
+    DC -->|эмбеддинг| E["Embeddings<br/>(текст → векторы)"]
     E -->|хранение| VDB["Векторная БД<br/>(Qdrant, Chroma)"]
     W -->|запрос| E
     VDB -->|контекст| L["LiteLLM<br/>(AI-шлюз)"]
@@ -178,6 +179,13 @@ docker run -d --name kokoro --restart always \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
 
+# Docling (разбор документов)
+docker run -d --name docling --restart always \
+    --network ai-stack \
+    -p 5001:5001 \
+    -v docling-data:/var/lib/docling \
+    hwdsl2/docling-server
+
 # MCP Gateway
 docker run -d --name mcp --restart always \
     --network ai-stack \
@@ -295,12 +303,14 @@ curl -s http://localhost:3000/mcp \
 
 | Сервис | Env-файл | Репозиторий |
 |---|---|---|
-| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama) |
-| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm) |
-| Embeddings | `embed.env` | [docker-embeddings](https://github.com/hwdsl2/docker-embeddings) |
-| Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper) |
-| Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro) |
-| MCP Gateway | `mcp.env` | [docker-mcp-gateway](https://github.com/hwdsl2/docker-mcp-gateway) |
+| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama/blob/main/README-ru.md) |
+| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md) |
+| Embeddings | `embed.env` | [docker-embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-ru.md) |
+| Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md) |
+| WhisperLive | `whisper-live.env` | [docker-whisper-live](https://github.com/hwdsl2/docker-whisper-live/blob/main/README-ru.md) |
+| Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro/blob/main/README-ru.md) |
+| MCP Gateway | `mcp.env` | [docker-mcp-gateway](https://github.com/hwdsl2/docker-mcp-gateway/blob/main/README-ru.md) |
+| Docling | `docling.env` | [docker-docling](https://github.com/hwdsl2/docker-docling/blob/main/README-ru.md) |
 
 Подробные параметры настройки, справочник API и управление моделями описаны в документации каждого сервиса.
 
