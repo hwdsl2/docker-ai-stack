@@ -14,12 +14,15 @@
 | `litellm-data` | LiteLLM | API-ключ, конфигурация прокси |
 | `embeddings-data` | Embeddings | Кэш модели эмбеддингов |
 | `whisper-data` | Whisper | Кэш модели Whisper |
+| `whisper-live-data` | WhisperLive | Кэш модели STT в реальном времени |
 | `kokoro-data` | Kokoro | Кэш модели/голосов TTS |
 | `mcp-data` | MCP Gateway | API-ключ, конфигурация инструментов |
+| `docling-data` | Docling | Кэш моделей конвертации документов |
+| `anythingllm-data` | AnythingLLM | История чатов, рабочие пространства, настройки, загруженные документы |
 
 **Важно:** API-ключи для Ollama, LiteLLM и MCP Gateway генерируются автоматически при первом запуске и хранятся в этих томах. Если вы потеряете том, вы потеряете ключ. Подключённым клиентам потребуется обновить ключи.
 
-**Примечание:** Тома `ollama-shared` и `mcp-shared` являются временными общими томами для автоматической передачи API-ключей между сервисами. Их не нужно резервировать — ключи уже хранятся в `ollama-data` и `mcp-data` соответственно и копируются заново при каждом запуске контейнера.
+**Примечание:** Тома `ollama-shared`, `mcp-shared` и `litellm-shared` являются временными общими томами для автоматической передачи API-ключей между сервисами. Их не нужно резервировать — ключи уже хранятся в `ollama-data`, `mcp-data` и `litellm-data` соответственно и копируются заново при каждом запуске контейнера.
 
 ## Экспорт API-ключей
 
@@ -49,7 +52,7 @@ docker compose down
 mkdir -p backups
 
 # Создать резервные копии всех томов
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -89,7 +92,7 @@ docker run --rm \
 docker compose down
 
 # Восстановить все тома из резервных копий
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -141,7 +144,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # Восстановить тома (создаются автоматически)
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -190,6 +193,6 @@ docker compose up -d
 ## Примечания
 
 - **Веса моделей** (в `ollama-data`) могут быть большими (несколько ГБ на модель). Создавайте резервную копию только если повторная загрузка затруднительна (медленный интернет, модели с пользовательской дообучкой).
-- **Кэш моделей** (`embeddings-data`, `whisper-data`, `kokoro-data`) загружается автоматически при первом запуске. Если пропускная способность не является проблемой, резервное копирование можно пропустить — они будут загружены повторно.
-- **Критические тома**, которые всегда следует копировать: `ollama-data` (если есть пользовательские модели), `litellm-data`, `mcp-data` (содержат API-ключи и конфигурацию).
+- **Кэш моделей** (`embeddings-data`, `whisper-data`, `whisper-live-data`, `kokoro-data`, `docling-data`) загружается автоматически при первом запуске. Если пропускная способность не является проблемой, резервное копирование можно пропустить — они будут загружены повторно.
+- **Критические тома**, которые всегда следует копировать: `ollama-data` (если есть пользовательские модели), `litellm-data`, `mcp-data` (содержат API-ключи и конфигурацию), а также `anythingllm-data` (история чатов и рабочие пространства).
 - Резервные копии — это стандартные архивы `.tar.gz`. Просмотреть содержимое можно командой: `tar tzf backups/ollama-data.tar.gz`

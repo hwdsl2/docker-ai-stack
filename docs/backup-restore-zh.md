@@ -14,12 +14,15 @@
 | `litellm-data` | LiteLLM | API 密钥、代理配置 |
 | `embeddings-data` | Embeddings | 嵌入模型缓存 |
 | `whisper-data` | Whisper | Whisper 模型缓存 |
+| `whisper-live-data` | WhisperLive | 实时语音转文本模型缓存 |
 | `kokoro-data` | Kokoro | TTS 模型/语音缓存 |
 | `mcp-data` | MCP Gateway | API 密钥、工具配置 |
+| `docling-data` | Docling | 文档转换模型缓存 |
+| `anythingllm-data` | AnythingLLM | 聊天记录、工作区、设置、上传的文档 |
 
 **重要提示：** Ollama、LiteLLM 和 MCP Gateway 的 API 密钥在首次启动时自动生成，存储在这些卷中。如果丢失卷，密钥也会丢失。已连接的客户端需要更新为新密钥。
 
-**注：** `ollama-shared` 和 `mcp-shared` 卷是用于在服务之间自动传递 API 密钥的临时共享卷，无需备份——密钥已分别存储在 `ollama-data` 和 `mcp-data` 中，每次容器启动时会重新复制。
+**注：** `ollama-shared`、`mcp-shared` 和 `litellm-shared` 卷是用于在服务之间自动传递 API 密钥的临时共享卷，无需备份——密钥已分别存储在 `ollama-data`、`mcp-data` 和 `litellm-data` 中，每次容器启动时会重新复制。
 
 ## 导出 API 密钥
 
@@ -49,7 +52,7 @@ docker compose down
 mkdir -p backups
 
 # 备份所有卷
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -89,7 +92,7 @@ docker run --rm \
 docker compose down
 
 # 从备份恢复所有卷
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -141,7 +144,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # 恢复卷（自动创建）
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -190,6 +193,6 @@ docker compose up -d
 ## 注意事项
 
 - **模型权重**（在 `ollama-data` 中）可能很大（每个模型数 GB）。仅在重新下载不便时才需备份（网速慢、自定义微调模型）。
-- **模型缓存**（`embeddings-data`、`whisper-data`、`kokoro-data`）在首次启动时自动下载。如果带宽不是问题，可以跳过备份 — 它们会被重新下载。
-- **关键卷**，应始终备份：`ollama-data`（如有自定义模型）、`litellm-data`、`mcp-data`（包含 API 密钥和配置）。
+- **模型缓存**（`embeddings-data`、`whisper-data`、`whisper-live-data`、`kokoro-data`、`docling-data`）在首次启动时自动下载。如果带宽不是问题，可以跳过备份 — 它们会被重新下载。
+- **关键卷**，应始终备份：`ollama-data`（如有自定义模型）、`litellm-data`、`mcp-data`（包含 API 密钥和配置）以及 `anythingllm-data`（聊天记录和工作区）。
 - 备份文件是标准的 `.tar.gz` 压缩包。可以使用以下命令查看内容：`tar tzf backups/ollama-data.tar.gz`

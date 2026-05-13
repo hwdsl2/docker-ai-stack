@@ -121,6 +121,7 @@ Don't need the full stack? Use a pre-configured subset from the `stacks/` folder
 
 | Stack | Services | Memory | Use case |
 |---|---|---|---|
+| **[chat-ui](stacks/chat-ui/)** | Ollama + LiteLLM + AnythingLLM | ~3 GB | Web-based ChatGPT-like chat interface |
 | **[voice-pipeline](stacks/voice-pipeline/)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 GB | Speech-to-text → LLM → text-to-speech |
 | **[rag-pipeline](stacks/rag-pipeline/)** | Ollama + LiteLLM + Embeddings | ~3 GB | Semantic search + LLM Q&A |
 | **[rag-pipeline-full](stacks/rag-pipeline-full/)** | Ollama + LiteLLM + Embeddings + Docling | ~4 GB | Document parsing + semantic search + LLM Q&A |
@@ -129,7 +130,7 @@ Don't need the full stack? Use a pre-configured subset from the `stacks/` folder
 
 ```bash
 git clone https://github.com/hwdsl2/docker-ai-stack
-cd docker-ai-stack/stacks/voice-pipeline  # or rag-pipeline, rag-pipeline-full, ai-tools, chat-only
+cd docker-ai-stack/stacks/chat-ui  # or voice-pipeline, rag-pipeline, rag-pipeline-full, ai-tools, chat-only
 docker compose up -d
 ```
 
@@ -313,6 +314,12 @@ Each service can be configured with an optional env file. Copy the example env f
 
 For detailed configuration options, API reference, and model management, see the documentation in each service's repository.
 
+## Internet-facing deployments
+
+By default, all services listen over plain HTTP. For internet-facing deployments, place a reverse proxy (e.g., [Caddy](https://caddyserver.com/), Nginx, or Traefik) in front of the stack to provide HTTPS. Each service repository includes a detailed [reverse proxy guide](https://github.com/hwdsl2/docker-whisper#using-a-reverse-proxy) with Caddy and nginx examples. The [chat-ui](stacks/chat-ui/) stack also includes a reverse proxy section specific to AnythingLLM.
+
+When exposing services to the internet, set API keys for services that are optional-auth by default (Whisper, WhisperLive, Kokoro, Embeddings, Docling) via their respective env files.
+
 ## Backup and restore
 
 Your API keys, models, and configuration are stored in Docker volumes. Back up before upgrading or making changes:
@@ -326,14 +333,14 @@ docker exec mcp mcp_manage --showkey
 # Back up all volumes (stop services first)
 docker compose down
 mkdir -p backups
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data docling-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   docker volume inspect "$vol" >/dev/null 2>&1 && \
     docker run --rm -v "${vol}:/source:ro" -v "$(pwd)/backups:/backup" \
       alpine tar czf "/backup/${vol}.tar.gz" -C /source .
 done
 ```
 
-**Note:** The `ollama-shared` and `mcp-shared` volumes are ephemeral key-sharing volumes and do not need to be backed up.
+**Note:** The `ollama-shared`, `mcp-shared`, and `litellm-shared` volumes are ephemeral key-sharing volumes and do not need to be backed up.
 
 For restore instructions, server migration, and the full pre-upgrade checklist, see the [Backup and Restore](docs/backup-restore.md) guide.
 

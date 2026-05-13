@@ -1,0 +1,202 @@
+[English](README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Русский](README-ru.md)
+
+# Chat UI
+
+A local ChatGPT-like experience — web-based chat UI powered by a local LLM with an OpenAI-compatible API gateway.
+
+**Services:** Ollama (LLM) + LiteLLM (gateway) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (chat UI)
+
+**Memory:** ~3 GB RAM (with a 3B model)
+
+## Architecture
+
+```mermaid
+graph LR
+    U["🌐 Browser"] -->|chat| A["AnythingLLM<br/>(chat UI)"]
+    A -->|API| L["LiteLLM<br/>(AI gateway)"]
+    L -->|routes to| O["Ollama<br/>(local LLM)"]
+```
+
+## Services
+
+| Service | Role | Default port |
+|---|---|---|
+| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama)** | Runs local LLM models (llama3, qwen, mistral, etc.) | `11434` |
+| **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI gateway — routes requests to Ollama and 100+ providers | `4000` |
+| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | Web-based chat UI with workspaces, RAG, and agent support | `3001` |
+
+## Quick start
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack/stacks/chat-ui
+docker compose up -d
+```
+
+**Pull a model** (required before making LLM requests):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
+
+**Open the chat UI:**
+
+AnythingLLM is pre-configured to connect to LiteLLM. The API key is shared automatically via a Docker volume — no manual setup needed.
+
+Open `http://<server-ip>:3001` in your browser and complete the initial setup. The LLM provider, base URL, and model are pre-configured.
+
+**Note:** For internet-facing deployments, using a [reverse proxy](#using-a-reverse-proxy) to add HTTPS is **strongly recommended**. In that case, also change `"3001:3001/tcp"` to `"127.0.0.1:3001:3001/tcp"` in `docker-compose.yml`, to prevent direct access to the unencrypted port. Set a strong password in AnythingLLM on first setup when the server is accessible from the public internet.
+
+## GPU acceleration (NVIDIA CUDA)
+
+For NVIDIA GPU acceleration, use the CUDA compose file:
+
+```bash
+docker compose -f docker-compose.cuda.yml up -d
+```
+
+**Requirements:** NVIDIA GPU, [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) 535+, and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the host. CUDA images are `linux/amd64` only.
+
+## Running without Docker Compose
+
+If you prefer using `docker run` commands directly, first create a shared network so services can communicate:
+
+```bash
+docker network create ai-stack
+```
+
+Then start each service on the shared network:
+
+```bash
+# Ollama (LLM)
+docker run -d --name ollama --restart always \
+    --network ai-stack \
+    -v ollama-data:/var/lib/ollama \
+    hwdsl2/ollama-server
+
+# LiteLLM (AI gateway)
+docker run -d --name litellm --restart always \
+    --network ai-stack \
+    -p 4000:4000 \
+    -e LITELLM_OLLAMA_BASE_URL=http://ollama:11434 \
+    -v litellm-data:/etc/litellm \
+    hwdsl2/litellm-server
+
+# AnythingLLM (chat UI)
+docker run -d --name anythingllm --restart always \
+    --network ai-stack \
+    -p 3001:3001 \
+    -e STORAGE_DIR=/app/server/storage \
+    -e LLM_PROVIDER=generic-openai \
+    -e GENERIC_OPEN_AI_BASE_PATH=http://litellm:4000/v1 \
+    -e GENERIC_OPEN_AI_MODEL_PREF=ollama/llama3.2:3b \
+    -e GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=131072 \
+    -e EMBEDDING_ENGINE=native \
+    -v anythingllm-data:/app/server/storage \
+    mintplexlabs/anythingllm
+```
+
+**Note:** The shared network allows services to reach each other by container name (e.g., AnythingLLM connects to LiteLLM via `http://litellm:4000`).
+
+**Pull a model** (required before making LLM requests):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
+
+## Verify deployment
+
+After starting the stack, you can verify that all services are running correctly:
+
+```bash
+# Run from the docker-ai-stack root directory
+../../stack-check.sh
+```
+
+## Customization
+
+Each service can be configured with an optional env file. Copy the example env file from the respective repository, edit it, and uncomment the volume mount in `docker-compose.yml`:
+
+| Service | Env file | Repository |
+|---|---|---|
+| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama) |
+| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm) |
+
+AnythingLLM is configured through its web UI at `http://<server-ip>:3001`. You can change the LLM provider, model, embedding engine, and other settings in **Settings**.
+
+**Tip:** If you also run other sub-stacks (e.g., [voice-pipeline](../voice-pipeline/), [rag-pipeline](../rag-pipeline/)), you can point AnythingLLM at those services via its Settings page — for example, using `docker-whisper` for speech-to-text or `docker-embeddings` for vector embeddings.
+
+For detailed configuration options, API reference, and model management, see the documentation in each service's repository.
+
+## Using a reverse proxy
+
+For internet-facing deployments, place a reverse proxy in front of AnythingLLM to handle HTTPS termination. The server works without HTTPS on a local or trusted network, but HTTPS is recommended when the chat UI is exposed to the internet.
+
+Use one of the following addresses to reach the AnythingLLM container from your reverse proxy:
+
+- **`anythingllm:3001`** — if your reverse proxy runs as a container in the **same Docker network** as AnythingLLM (e.g. defined in the same `docker-compose.yml`).
+- **`127.0.0.1:3001`** — if your reverse proxy runs **on the host** and port `3001` is published (the default `docker-compose.yml` publishes it).
+
+**Example with [Caddy](https://caddyserver.com/docs/) ([Docker image](https://hub.docker.com/_/caddy))** (automatic TLS via Let's Encrypt, reverse proxy in the same Docker network):
+
+`Caddyfile`:
+```
+chat.example.com {
+  reverse_proxy anythingllm:3001
+}
+```
+
+**Example with nginx** (reverse proxy on the host):
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name chat.example.com;
+
+    ssl_certificate     /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass         http://127.0.0.1:3001;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300s;
+    }
+}
+```
+
+**Important:** AnythingLLM includes its own user authentication system — set a strong password on first setup when exposing the service to the internet.
+
+## Update images
+
+To update all services to the latest versions:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Your data is preserved in the Docker volumes.
+
+## Example
+
+```bash
+# Open the chat UI in your browser
+open http://localhost:3001
+```
+
+Or use the LiteLLM API directly:
+
+```bash
+LITELLM_KEY=$(docker exec litellm litellm_manage --showkey | grep '^sk-' | head -1)
+
+curl http://localhost:4000/v1/chat/completions \
+    -H "Authorization: Bearer $LITELLM_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "model": "ollama/llama3.2:3b",
+      "messages": [{"role": "user", "content": "Hello, how are you?"}]
+    }' | jq -r '.choices[0].message.content'

@@ -14,12 +14,15 @@
 | `litellm-data` | LiteLLM | API 金鑰、代理設定 |
 | `embeddings-data` | Embeddings | 嵌入模型快取 |
 | `whisper-data` | Whisper | Whisper 模型快取 |
+| `whisper-live-data` | WhisperLive | 即時語音轉文字模型快取 |
 | `kokoro-data` | Kokoro | TTS 模型/語音快取 |
 | `mcp-data` | MCP Gateway | API 金鑰、工具設定 |
+| `docling-data` | Docling | 文件轉換模型快取 |
+| `anythingllm-data` | AnythingLLM | 聊天記錄、工作區、設定、上傳的文件 |
 
 **重要提示：** Ollama、LiteLLM 和 MCP Gateway 的 API 金鑰在首次啟動時自動產生，儲存在這些磁碟區中。如果遺失磁碟區，金鑰也會遺失。已連線的用戶端需要更新為新金鑰。
 
-**注：** `ollama-shared` 和 `mcp-shared` 磁碟區是用於在服務之間自動傳遞 API 金鑰的臨時共享卷，無需備份——金鑰已分別儲存在 `ollama-data` 和 `mcp-data` 中，每次容器啟動時會重新複製。
+**注：** `ollama-shared`、`mcp-shared` 和 `litellm-shared` 磁碟區是用於在服務之間自動傳遞 API 金鑰的臨時共享卷，無需備份——金鑰已分別儲存在 `ollama-data`、`mcp-data` 和 `litellm-data` 中，每次容器啟動時會重新複製。
 
 ## 匯出 API 金鑰
 
@@ -49,7 +52,7 @@ docker compose down
 mkdir -p backups
 
 # 備份所有磁碟區
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -89,7 +92,7 @@ docker run --rm \
 docker compose down
 
 # 從備份還原所有磁碟區
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -141,7 +144,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # 還原磁碟區（自動建立）
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -190,6 +193,6 @@ docker compose up -d
 ## 注意事項
 
 - **模型權重**（在 `ollama-data` 中）可能很大（每個模型數 GB）。僅在重新下載不便時才需備份（網速慢、自訂微調模型）。
-- **模型快取**（`embeddings-data`、`whisper-data`、`kokoro-data`）在首次啟動時自動下載。如果頻寬不是問題，可以略過備份 — 它們會被重新下載。
-- **關鍵磁碟區**，應始終備份：`ollama-data`（如有自訂模型）、`litellm-data`、`mcp-data`（包含 API 金鑰和設定）。
+- **模型快取**（`embeddings-data`、`whisper-data`、`whisper-live-data`、`kokoro-data`、`docling-data`）在首次啟動時自動下載。如果頻寬不是問題，可以略過備份 — 它們會被重新下載。
+- **關鍵磁碟區**，應始終備份：`ollama-data`（如有自訂模型）、`litellm-data`、`mcp-data`（包含 API 金鑰和設定）以及 `anythingllm-data`（聊天記錄和工作區）。
 - 備份檔案是標準的 `.tar.gz` 壓縮檔。可以使用以下命令檢視內容：`tar tzf backups/ollama-data.tar.gz`

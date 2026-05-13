@@ -121,6 +121,7 @@ docker compose -f docker-compose.cuda.yml up -d
 
 | 技术栈 | 服务 | 内存 | 使用场景 |
 |---|---|---|---|
+| **[chat-ui](stacks/chat-ui/README-zh.md)** | Ollama + LiteLLM + AnythingLLM | ~3 GB | 基于 Web 的 ChatGPT 式聊天界面 |
 | **[voice-pipeline](stacks/voice-pipeline/README-zh.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 GB | 语音转文本 → LLM → 文本转语音 |
 | **[rag-pipeline](stacks/rag-pipeline/README-zh.md)** | Ollama + LiteLLM + Embeddings | ~3 GB | 语义搜索 + LLM 问答 |
 | **[rag-pipeline-full](stacks/rag-pipeline-full/README-zh.md)** | Ollama + LiteLLM + Embeddings + Docling | ~4 GB | 文档解析 + 语义搜索 + LLM 问答 |
@@ -129,7 +130,7 @@ docker compose -f docker-compose.cuda.yml up -d
 
 ```bash
 git clone https://github.com/hwdsl2/docker-ai-stack
-cd docker-ai-stack/stacks/voice-pipeline  # 或 rag-pipeline、rag-pipeline-full、ai-tools、chat-only
+cd docker-ai-stack/stacks/chat-ui  # 或 voice-pipeline、rag-pipeline、rag-pipeline-full、ai-tools、chat-only
 docker compose up -d
 ```
 
@@ -313,6 +314,12 @@ curl -s http://localhost:3000/mcp \
 
 有关详细配置选项、API 参考和模型管理，请参阅各服务仓库的文档。
 
+## 面向互联网的部署
+
+默认情况下，所有服务通过纯 HTTP 监听。对于面向互联网的部署，请在技术栈前面放置反向代理（例如 [Caddy](https://caddyserver.com/)、Nginx 或 Traefik）以提供 HTTPS。每个服务仓库都包含详细的[反向代理指南](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh.md#使用反向代理)，含 Caddy 和 nginx 示例。[chat-ui](stacks/chat-ui/README-zh.md) 技术栈还包含针对 AnythingLLM 的反向代理章节。
+
+将服务暴露到互联网时，请通过相应的 env 文件为默认无需认证的服务（Whisper、WhisperLive、Kokoro、Embeddings、Docling）设置 API 密钥。
+
 ## 备份与恢复
 
 您的 API 密钥、模型和配置存储在 Docker 卷中。升级或更改前请先备份：
@@ -326,14 +333,14 @@ docker exec mcp mcp_manage --showkey
 # 备份所有卷（先停止服务）
 docker compose down
 mkdir -p backups
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data docling-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   docker volume inspect "$vol" >/dev/null 2>&1 && \
     docker run --rm -v "${vol}:/source:ro" -v "$(pwd)/backups:/backup" \
       alpine tar czf "/backup/${vol}.tar.gz" -C /source .
 done
 ```
 
-**注：** `ollama-shared` 和 `mcp-shared` 卷是临时密钥共享卷，无需备份。
+**注：** `ollama-shared`、`mcp-shared` 和 `litellm-shared` 卷是临时密钥共享卷，无需备份。
 
 有关恢复说明、服务器迁移和完整的升级前检查清单，请参阅[备份与恢复](docs/backup-restore-zh.md)指南。
 

@@ -121,6 +121,7 @@ docker compose -f docker-compose.cuda.yml up -d
 
 | 技術堆疊 | 服務 | 記憶體 | 使用場景 |
 |---|---|---|---|
+| **[chat-ui](stacks/chat-ui/README-zh-Hant.md)** | Ollama + LiteLLM + AnythingLLM | ~3 GB | 基於 Web 的 ChatGPT 式聊天介面 |
 | **[voice-pipeline](stacks/voice-pipeline/README-zh-Hant.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 GB | 語音轉文字 → LLM → 文字轉語音 |
 | **[rag-pipeline](stacks/rag-pipeline/README-zh-Hant.md)** | Ollama + LiteLLM + Embeddings | ~3 GB | 語意搜尋 + LLM 問答 |
 | **[rag-pipeline-full](stacks/rag-pipeline-full/README-zh-Hant.md)** | Ollama + LiteLLM + Embeddings + Docling | ~4 GB | 文件解析 + 語意搜尋 + LLM 問答 |
@@ -129,7 +130,7 @@ docker compose -f docker-compose.cuda.yml up -d
 
 ```bash
 git clone https://github.com/hwdsl2/docker-ai-stack
-cd docker-ai-stack/stacks/voice-pipeline  # 或 rag-pipeline、rag-pipeline-full、ai-tools、chat-only
+cd docker-ai-stack/stacks/chat-ui  # 或 voice-pipeline、rag-pipeline、rag-pipeline-full、ai-tools、chat-only
 docker compose up -d
 ```
 
@@ -313,6 +314,12 @@ curl -s http://localhost:3000/mcp \
 
 有關詳細設定選項、API 參考和模型管理，請參閱各服務儲存庫的文件。
 
+## 面向網際網路的部署
+
+預設情況下，所有服務透過純 HTTP 監聽。對於面向網際網路的部署，請在技術堆疊前面放置反向代理（例如 [Caddy](https://caddyserver.com/)、Nginx 或 Traefik）以提供 HTTPS。每個服務儲存庫都包含詳細的[反向代理指南](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh-Hant.md#使用反向代理)，含 Caddy 和 nginx 範例。[chat-ui](stacks/chat-ui/README-zh-Hant.md) 技術堆疊還包含針對 AnythingLLM 的反向代理章節。
+
+將服務暴露到網際網路時，請透過相應的 env 檔案為預設無需驗證的服務（Whisper、WhisperLive、Kokoro、Embeddings、Docling）設定 API 金鑰。
+
 ## 備份與還原
 
 您的 API 金鑰、模型和設定儲存在 Docker 磁碟區中。升級或變更前請先備份：
@@ -326,14 +333,14 @@ docker exec mcp mcp_manage --showkey
 # 備份所有磁碟區（先停止服務）
 docker compose down
 mkdir -p backups
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data docling-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   docker volume inspect "$vol" >/dev/null 2>&1 && \
     docker run --rm -v "${vol}:/source:ro" -v "$(pwd)/backups:/backup" \
       alpine tar czf "/backup/${vol}.tar.gz" -C /source .
 done
 ```
 
-**注：** `ollama-shared` 和 `mcp-shared` 磁碟區是臨時金鑰共享卷，無需備份。
+**注：** `ollama-shared`、`mcp-shared` 和 `litellm-shared` 磁碟區是臨時金鑰共享卷，無需備份。
 
 有關還原說明、伺服器遷移和完整的升級前檢查清單，請參閱[備份與還原](docs/backup-restore-zh-Hant.md)指南。
 

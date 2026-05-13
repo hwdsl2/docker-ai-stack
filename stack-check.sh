@@ -13,7 +13,7 @@
 # Usage: ./stack-check.sh
 #
 # Automatically detects which services are running and checks each one.
-# Works with the full stack and all lightweight stacks (chat-only,
+# Works with the full stack and all lightweight stacks (chat-ui, chat-only,
 # rag-pipeline, ai-tools, voice-pipeline).
 
 set -euo pipefail
@@ -293,6 +293,25 @@ if [ -n "$DOCLING" ]; then
   fi
 else
   info "Docling — not running (skipped)"
+fi
+
+echo ""
+
+# ── AnythingLLM ──────────────────────────────────────────
+ANYTHINGLLM=$(find_service "anythingllm" "mintplexlabs/anythingllm")
+if [ -n "$ANYTHINGLLM" ]; then
+  info "AnythingLLM ($ANYTHINGLLM)"
+
+  pass "Container running"
+
+  # Check health endpoint
+  if http_ok "http://localhost:3001/api/ping"; then
+    pass "Health endpoint responds"
+  else
+    fail "Health endpoint not responding at http://localhost:3001/api/ping"
+  fi
+else
+  info "AnythingLLM — not running (skipped)"
 fi
 
 echo ""

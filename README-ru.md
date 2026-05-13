@@ -121,6 +121,7 @@ docker compose -f docker-compose.cuda.yml up -d
 
 | Стек | Сервисы | Память | Сценарий использования |
 |---|---|---|---|
+| **[chat-ui](stacks/chat-ui/README-ru.md)** | Ollama + LiteLLM + AnythingLLM | ~3 ГБ | Веб-интерфейс для чата в стиле ChatGPT |
 | **[voice-pipeline](stacks/voice-pipeline/README-ru.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 ГБ | Речь в текст → LLM → текст в речь |
 | **[rag-pipeline](stacks/rag-pipeline/README-ru.md)** | Ollama + LiteLLM + Embeddings | ~3 ГБ | Семантический поиск + LLM Q&A |
 | **[rag-pipeline-full](stacks/rag-pipeline-full/README-ru.md)** | Ollama + LiteLLM + Embeddings + Docling | ~4 ГБ | Разбор документов + семантический поиск + LLM Q&A |
@@ -129,7 +130,7 @@ docker compose -f docker-compose.cuda.yml up -d
 
 ```bash
 git clone https://github.com/hwdsl2/docker-ai-stack
-cd docker-ai-stack/stacks/voice-pipeline  # или rag-pipeline, rag-pipeline-full, ai-tools, chat-only
+cd docker-ai-stack/stacks/chat-ui  # или voice-pipeline, rag-pipeline, rag-pipeline-full, ai-tools, chat-only
 docker compose up -d
 ```
 
@@ -313,6 +314,12 @@ curl -s http://localhost:3000/mcp \
 
 Подробные параметры настройки, справочник API и управление моделями описаны в документации каждого сервиса.
 
+## Развёртывание с доступом из интернета
+
+По умолчанию все сервисы слушают по незашифрованному HTTP. Для развёртываний с доступом из интернета установите обратный прокси (например, [Caddy](https://caddyserver.com/), Nginx или Traefik) перед стеком для обеспечения HTTPS. Каждый репозиторий сервиса содержит подробное [руководство по обратному прокси](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md#использование-обратного-прокси) с примерами для Caddy и nginx. Стек [chat-ui](stacks/chat-ui/README-ru.md) также содержит раздел по обратному прокси для AnythingLLM.
+
+При открытии сервисов в интернет установите API-ключи для сервисов с опциональной авторизацией (Whisper, WhisperLive, Kokoro, Embeddings, Docling) через соответствующие env-файлы.
+
 ## Резервное копирование и восстановление
 
 Ваши API-ключи, модели и конфигурация хранятся в Docker-томах. Создайте резервную копию перед обновлением или внесением изменений:
@@ -326,14 +333,14 @@ docker exec mcp mcp_manage --showkey
 # Резервное копирование всех томов (сначала остановите сервисы)
 docker compose down
 mkdir -p backups
-for vol in ollama-data litellm-data embeddings-data whisper-data kokoro-data mcp-data docling-data; do
+for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   docker volume inspect "$vol" >/dev/null 2>&1 && \
     docker run --rm -v "${vol}:/source:ro" -v "$(pwd)/backups:/backup" \
       alpine tar czf "/backup/${vol}.tar.gz" -C /source .
 done
 ```
 
-**Примечание:** Тома `ollama-shared` и `mcp-shared` являются временными томами для передачи ключей и не требуют резервного копирования.
+**Примечание:** Тома `ollama-shared`, `mcp-shared` и `litellm-shared` являются временными томами для передачи ключей и не требуют резервного копирования.
 
 Инструкции по восстановлению, миграции на новый сервер и полный контрольный список перед обновлением см. в руководстве [Резервное копирование и восстановление](docs/backup-restore-ru.md).
 
