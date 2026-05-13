@@ -80,14 +80,14 @@ docker run -d --name litellm --restart always \
 # Embeddings
 docker run -d --name embeddings --restart always \
     --network ai-stack \
-    -p 8000:8000 \
+    -p 127.0.0.1:8000:8000 \
     -v embeddings-data:/var/lib/embeddings \
     hwdsl2/embeddings-server
 
 # Docling（文件解析）
 docker run -d --name docling --restart always \
     --network ai-stack \
-    -p 5001:5001 \
+    -p 127.0.0.1:5001:5001 \
     -v docling-data:/var/lib/docling \
     hwdsl2/docling-server
 ```

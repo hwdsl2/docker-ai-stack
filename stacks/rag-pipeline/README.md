@@ -78,7 +78,7 @@ docker run -d --name litellm --restart always \
 # Embeddings
 docker run -d --name embeddings --restart always \
     --network ai-stack \
-    -p 8000:8000 \
+    -p 127.0.0.1:8000:8000 \
     -v embeddings-data:/var/lib/embeddings \
     hwdsl2/embeddings-server
 ```

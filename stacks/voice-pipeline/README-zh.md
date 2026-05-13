@@ -81,14 +81,14 @@ docker run -d --name litellm --restart always \
 # Whisper (STT)
 docker run -d --name whisper --restart always \
     --network ai-stack \
-    -p 9000:9000 \
+    -p 127.0.0.1:9000:9000 \
     -v whisper-data:/var/lib/whisper \
     hwdsl2/whisper-server
 
 # Kokoro (TTS)
 docker run -d --name kokoro --restart always \
     --network ai-stack \
-    -p 8880:8880 \
+    -p 127.0.0.1:8880:8880 \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
 ```

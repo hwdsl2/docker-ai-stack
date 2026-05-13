@@ -78,7 +78,6 @@ docker run -d --name litellm --restart always \
 # MCP Gateway
 docker run -d --name mcp --restart always \
     --network ai-stack \
-    -p 3000:3000 \
     -v mcp-data:/var/lib/mcp \
     hwdsl2/mcp-gateway
 ```

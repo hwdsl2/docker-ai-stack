@@ -161,35 +161,34 @@ docker run -d --name litellm --restart always \
 # Embeddings
 docker run -d --name embeddings --restart always \
     --network ai-stack \
-    -p 8000:8000 \
+    -p 127.0.0.1:8000:8000 \
     -v embeddings-data:/var/lib/embeddings \
     hwdsl2/embeddings-server
 
 # Whisper (STT)
 docker run -d --name whisper --restart always \
     --network ai-stack \
-    -p 9000:9000 \
+    -p 127.0.0.1:9000:9000 \
     -v whisper-data:/var/lib/whisper \
     hwdsl2/whisper-server
 
 # Kokoro (TTS)
 docker run -d --name kokoro --restart always \
     --network ai-stack \
-    -p 8880:8880 \
+    -p 127.0.0.1:8880:8880 \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
 
 # Docling (разбор документов)
 docker run -d --name docling --restart always \
     --network ai-stack \
-    -p 5001:5001 \
+    -p 127.0.0.1:5001:5001 \
     -v docling-data:/var/lib/docling \
     hwdsl2/docling-server
 
 # MCP Gateway
 docker run -d --name mcp --restart always \
     --network ai-stack \
-    -p 3000:3000 \
     -v mcp-data:/var/lib/mcp \
     hwdsl2/mcp-gateway
 ```
