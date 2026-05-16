@@ -2,7 +2,7 @@
 
 # Docker AI Stack
 
-[![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![授權協議: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
+[![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-ai-stack.svg)](https://hub.docker.com/u/hwdsl2) &nbsp;[![授權協議: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
 一鍵在您自己的伺服器上部署完整的自託管 AI 技術堆疊。
 
