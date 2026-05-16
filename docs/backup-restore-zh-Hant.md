@@ -12,6 +12,7 @@
 |---|---|---|
 | `ollama-data` | Ollama | 已下載的模型、API 金鑰、連接埠/伺服器設定 |
 | `litellm-data` | LiteLLM | API 金鑰、代理設定 |
+| `litellm-db` | LiteLLM | PostgreSQL 資料庫（使用資料、日誌） |
 | `embeddings-data` | Embeddings | 嵌入模型快取 |
 | `whisper-data` | Whisper | Whisper 模型快取 |
 | `whisper-live-data` | WhisperLive | 即時語音轉文字模型快取 |
@@ -52,7 +53,7 @@ docker compose down
 mkdir -p backups
 
 # 備份所有磁碟區
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -92,7 +93,7 @@ docker run --rm \
 docker compose down
 
 # 從備份還原所有磁碟區
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -144,7 +145,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # 還原磁碟區（自動建立）
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -194,5 +195,5 @@ docker compose up -d
 
 - **模型權重**（在 `ollama-data` 中）可能很大（每個模型數 GB）。僅在重新下載不便時才需備份（網速慢、自訂微調模型）。
 - **模型快取**（`embeddings-data`、`whisper-data`、`whisper-live-data`、`kokoro-data`、`docling-data`）在首次啟動時自動下載。如果頻寬不是問題，可以略過備份 — 它們會被重新下載。
-- **關鍵磁碟區**，應始終備份：`ollama-data`（如有自訂模型）、`litellm-data`、`mcp-data`（包含 API 金鑰和設定）以及 `anythingllm-data`（聊天記錄和工作區）。
+- **關鍵磁碟區**，應始終備份：`ollama-data`（如有自訂模型）、`litellm-data`、`litellm-db`、`mcp-data`（包含 API 金鑰和設定）以及 `anythingllm-data`（聊天記錄和工作區）。
 - 備份檔案是標準的 `.tar.gz` 壓縮檔。可以使用以下命令檢視內容：`tar tzf backups/ollama-data.tar.gz`

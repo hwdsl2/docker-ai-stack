@@ -12,6 +12,7 @@
 |---|---|---|
 | `ollama-data` | Ollama | Загруженные модели, API-ключ, конфигурация порта/сервера |
 | `litellm-data` | LiteLLM | API-ключ, конфигурация прокси |
+| `litellm-db` | LiteLLM | База данных PostgreSQL (данные использования, журналы) |
 | `embeddings-data` | Embeddings | Кэш модели эмбеддингов |
 | `whisper-data` | Whisper | Кэш модели Whisper |
 | `whisper-live-data` | WhisperLive | Кэш модели STT в реальном времени |
@@ -52,7 +53,7 @@ docker compose down
 mkdir -p backups
 
 # Создать резервные копии всех томов
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -92,7 +93,7 @@ docker run --rm \
 docker compose down
 
 # Восстановить все тома из резервных копий
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -144,7 +145,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # Восстановить тома (создаются автоматически)
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -194,5 +195,5 @@ docker compose up -d
 
 - **Веса моделей** (в `ollama-data`) могут быть большими (несколько ГБ на модель). Создавайте резервную копию только если повторная загрузка затруднительна (медленный интернет, модели с пользовательской дообучкой).
 - **Кэш моделей** (`embeddings-data`, `whisper-data`, `whisper-live-data`, `kokoro-data`, `docling-data`) загружается автоматически при первом запуске. Если пропускная способность не является проблемой, резервное копирование можно пропустить — они будут загружены повторно.
-- **Критические тома**, которые всегда следует копировать: `ollama-data` (если есть пользовательские модели), `litellm-data`, `mcp-data` (содержат API-ключи и конфигурацию), а также `anythingllm-data` (история чатов и рабочие пространства).
+- **Критические тома**, которые всегда следует копировать: `ollama-data` (если есть пользовательские модели), `litellm-data`, `litellm-db`, `mcp-data` (содержат API-ключи и конфигурацию), а также `anythingllm-data` (история чатов и рабочие пространства).
 - Резервные копии — это стандартные архивы `.tar.gz`. Просмотреть содержимое можно командой: `tar tzf backups/ollama-data.tar.gz`

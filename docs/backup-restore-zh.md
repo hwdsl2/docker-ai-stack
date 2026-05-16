@@ -12,6 +12,7 @@
 |---|---|---|
 | `ollama-data` | Ollama | 已下载的模型、API 密钥、端口/服务器配置 |
 | `litellm-data` | LiteLLM | API 密钥、代理配置 |
+| `litellm-db` | LiteLLM | PostgreSQL 数据库（使用数据、日志） |
 | `embeddings-data` | Embeddings | 嵌入模型缓存 |
 | `whisper-data` | Whisper | Whisper 模型缓存 |
 | `whisper-live-data` | WhisperLive | 实时语音转文本模型缓存 |
@@ -52,7 +53,7 @@ docker compose down
 mkdir -p backups
 
 # 备份所有卷
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -92,7 +93,7 @@ docker run --rm \
 docker compose down
 
 # 从备份恢复所有卷
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -144,7 +145,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # 恢复卷（自动创建）
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -194,5 +195,5 @@ docker compose up -d
 
 - **模型权重**（在 `ollama-data` 中）可能很大（每个模型数 GB）。仅在重新下载不便时才需备份（网速慢、自定义微调模型）。
 - **模型缓存**（`embeddings-data`、`whisper-data`、`whisper-live-data`、`kokoro-data`、`docling-data`）在首次启动时自动下载。如果带宽不是问题，可以跳过备份 — 它们会被重新下载。
-- **关键卷**，应始终备份：`ollama-data`（如有自定义模型）、`litellm-data`、`mcp-data`（包含 API 密钥和配置）以及 `anythingllm-data`（聊天记录和工作区）。
+- **关键卷**，应始终备份：`ollama-data`（如有自定义模型）、`litellm-data`、`litellm-db`、`mcp-data`（包含 API 密钥和配置）以及 `anythingllm-data`（聊天记录和工作区）。
 - 备份文件是标准的 `.tar.gz` 压缩包。可以使用以下命令查看内容：`tar tzf backups/ollama-data.tar.gz`

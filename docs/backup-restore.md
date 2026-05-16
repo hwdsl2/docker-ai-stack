@@ -12,6 +12,7 @@ Each service stores its data in a named Docker volume:
 |---|---|---|
 | `ollama-data` | Ollama | Downloaded models, API key, port/server config |
 | `litellm-data` | LiteLLM | API key, proxy configuration |
+| `litellm-db` | LiteLLM | PostgreSQL database (usage data, logs) |
 | `embeddings-data` | Embeddings | Embedding model cache |
 | `whisper-data` | Whisper | Whisper model cache |
 | `whisper-live-data` | WhisperLive | Real-time STT model cache |
@@ -52,7 +53,7 @@ docker compose down
 mkdir -p backups
 
 # Back up all volumes
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -92,7 +93,7 @@ If you're running a lightweight stack (e.g., chat-only), only the relevant volum
 docker compose down
 
 # Restore all volumes from backup
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -144,7 +145,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # Restore volumes (creates them automatically)
-for vol in ollama-data litellm-data embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -194,5 +195,5 @@ docker compose up -d
 
 - **Model weights** (in `ollama-data`) can be large (several GB per model). Back up only if re-downloading is impractical (slow internet, custom fine-tuned models).
 - **Model caches** (`embeddings-data`, `whisper-data`, `whisper-live-data`, `kokoro-data`, `docling-data`) are downloaded automatically on first start. You can skip backing these up if bandwidth is not a concern — they will be re-downloaded.
-- **Critical volumes** that should always be backed up: `ollama-data` (if custom models), `litellm-data`, `mcp-data` (contain API keys and configuration), and `anythingllm-data` (chat history and workspaces).
+- **Critical volumes** that should always be backed up: `ollama-data` (if custom models), `litellm-data`, `litellm-db`, `mcp-data` (contain API keys and configuration), and `anythingllm-data` (chat history and workspaces).
 - Backups are standard `.tar.gz` archives. You can inspect contents with: `tar tzf backups/ollama-data.tar.gz`
