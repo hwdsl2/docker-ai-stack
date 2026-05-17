@@ -35,7 +35,7 @@ services:
     container_name: litellm
     restart: always
     ports:
-      - "4000:4000/tcp"
+      - "4000:4000/tcp"  # For a host-based reverse proxy, change to "127.0.0.1:4000:4000/tcp"
     environment:
       - LITELLM_OLLAMA_BASE_URL=http://ollama:11434
       - LITELLM_DATABASE_URL=postgresql://litellm:litellm@db:5432/litellm
