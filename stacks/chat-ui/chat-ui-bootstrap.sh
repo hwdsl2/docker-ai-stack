@@ -6,9 +6,25 @@
 # This file is part of Docker AI Stack:
 # https://github.com/hwdsl2/docker-ai-stack
 
-# Read LiteLLM API key from shared volume (if available)
-if [ -f /var/lib/litellm-shared/.api_key ]; then
-  export GENERIC_OPEN_AI_API_KEY=$(cat /var/lib/litellm-shared/.api_key)
+# Read LiteLLM API key from shared volume (wait for it to be available)
+if [ -d /var/lib/litellm-shared ]; then
+  echo "Waiting for LiteLLM API key..."
+  for i in $(seq 1 300); do
+    if [ -r /var/lib/litellm-shared/.api_key ]; then
+      KEY=$(cat /var/lib/litellm-shared/.api_key)
+      case "$KEY" in
+        sk-*)
+          export GENERIC_OPEN_AI_API_KEY="$KEY"
+          echo "LiteLLM API key loaded."
+          break
+          ;;
+      esac
+    fi
+    sleep 2
+  done
+  if [ -z "$GENERIC_OPEN_AI_API_KEY" ]; then
+    echo "Warning: LiteLLM API key not found or invalid after waiting. Proceeding without it."
+  fi
 fi
 
 # Start AnythingLLM using the original entrypoint
