@@ -117,6 +117,10 @@ After starting the stack, you can verify that all services are running correctly
 
 Open `http://<server-ip>:4000/ui` in your browser. Log in with username `admin` and your LiteLLM master key as the password. The UI provides virtual key management, spend tracking, and model configuration.
 
+**Try it in the Playground:**
+
+In the Admin UI, click **Playground** in the left menu. Select a local model (e.g., `ollama/llama3.2:3b`) from the dropdown and start chatting — this is the quickest way to verify your local LLM is working end-to-end.
+
 ## Customization
 
 Each service can be configured with an optional env file. Copy the example env file from the respective repository, edit it, and uncomment the volume mount in `docker-compose.yml`:
