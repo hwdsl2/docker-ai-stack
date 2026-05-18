@@ -6,7 +6,7 @@ Parse documents, embed them for semantic search, and answer questions with a loc
 
 **Services:** Ollama (LLM) + LiteLLM (gateway) + Embeddings + Docling (document parsing)
 
-**Memory:** ~4 GB RAM (with a 3B model)
+**Memory:** ~6 GB RAM (with a 3B model)
 
 ## Architecture
 

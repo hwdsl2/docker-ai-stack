@@ -10,7 +10,7 @@ Deploy a complete, self-hosted AI stack on your own server with a single command
 - Secure: Ollama, LiteLLM, and MCP Gateway generate API keys automatically
 - Private: audio, embeddings, and LLM inference all run locally — no data sent to third parties
 - Optional auth: Whisper, WhisperLive, Kokoro, Embeddings, and Docling work without API keys by default (set keys via env files for public deployments)
-- [Lightweight stacks](#lightweight-stacks) for lower memory requirements (as low as ~2.5 GB)
+- [Lightweight stacks](#lightweight-stacks) for lower memory requirements (as low as ~4.5 GB)
 - GPU acceleration via NVIDIA CUDA
 
 **Note:** When using LiteLLM with external providers (e.g., OpenAI, Anthropic), your data will be sent to those providers.
@@ -63,7 +63,7 @@ graph LR
 **Requirements:**
 
 - A Linux server (local or cloud) with Docker installed
-- At least 8 GB of RAM (with small models). For larger LLM models (8B+), 32 GB or more is recommended.
+- At least 8 GB of RAM (with small models). For larger LLM models (8B+), 16 GB or more is recommended.
 - You can comment out services you don't need to reduce memory usage.
 
 **Start the full stack:**
@@ -146,12 +146,12 @@ Don't need the full stack? Use a pre-configured subset from the `stacks/` folder
 
 | Stack | Services | Memory | Use case |
 |---|---|---|---|
-| **[chat-ui](stacks/chat-ui/)** | Ollama + LiteLLM + AnythingLLM | ~3 GB | Web-based ChatGPT-like chat interface |
-| **[voice-pipeline](stacks/voice-pipeline/)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 GB | Speech-to-text → LLM → text-to-speech |
-| **[rag-pipeline](stacks/rag-pipeline/)** | Ollama + LiteLLM + Embeddings | ~3 GB | Semantic search + LLM Q&A |
-| **[rag-pipeline-full](stacks/rag-pipeline-full/)** | Ollama + LiteLLM + Embeddings + Docling | ~4 GB | Document parsing + semantic search + LLM Q&A |
-| **[ai-tools](stacks/ai-tools/)** | Ollama + LiteLLM + MCP Gateway | ~3 GB | AI coding assistant with tool access |
-| **[chat-only](stacks/chat-only/)** | Ollama + LiteLLM | ~2.5 GB | Minimal local ChatGPT replacement |
+| **[chat-ui](stacks/chat-ui/)** | Ollama + LiteLLM + AnythingLLM | ~5 GB | Web-based ChatGPT-like chat interface |
+| **[voice-pipeline](stacks/voice-pipeline/)** | Whisper + Ollama + LiteLLM + Kokoro | ~6 GB | Speech-to-text → LLM → text-to-speech |
+| **[rag-pipeline](stacks/rag-pipeline/)** | Ollama + LiteLLM + Embeddings | ~5 GB | Semantic search + LLM Q&A |
+| **[rag-pipeline-full](stacks/rag-pipeline-full/)** | Ollama + LiteLLM + Embeddings + Docling | ~6 GB | Document parsing + semantic search + LLM Q&A |
+| **[ai-tools](stacks/ai-tools/)** | Ollama + LiteLLM + MCP Gateway | ~5 GB | AI coding assistant with tool access |
+| **[chat-only](stacks/chat-only/)** | Ollama + LiteLLM | ~4.5 GB | Minimal local ChatGPT replacement |
 
 ```bash
 git clone https://github.com/hwdsl2/docker-ai-stack
@@ -244,6 +244,8 @@ Once connected, AI clients that call LiteLLM can use MCP tools (filesystem, fetc
 ## Voice pipeline example
 
 Transcribe a spoken question, get a local LLM response via Ollama, and convert it to speech:
+
+**Note:** Kokoro (TTS) is disabled by default. To use this example, first uncomment the `kokoro` service in `docker-compose.yml`, then run `docker compose up -d`.
 
 **Tip:** Need a sample audio file? Download this English speech sample (WAV, MIT License) from the [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk) repository:
 

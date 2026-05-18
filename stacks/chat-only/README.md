@@ -6,7 +6,7 @@ Minimal local chat setup — a local LLM with an OpenAI-compatible API gateway.
 
 **Services:** Ollama (LLM) + LiteLLM (gateway)
 
-**Memory:** ~2.5 GB RAM (with a 3B model)
+**Memory:** ~4.5 GB RAM (with a 3B model)
 
 ## Architecture
 

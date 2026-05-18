@@ -6,7 +6,7 @@
 
 **服務：** Ollama (LLM) + LiteLLM (閘道) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (聊天介面)
 
-**記憶體：** ~3 GB RAM（使用 3B 模型）
+**記憶體：** ~5 GB RAM（使用 3B 模型）
 
 ## 架構
 

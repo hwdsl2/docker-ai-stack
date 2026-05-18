@@ -6,7 +6,7 @@
 
 **服务：** Ollama (LLM) + LiteLLM (网关) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (聊天界面)
 
-**内存：** ~3 GB RAM（使用 3B 模型）
+**内存：** ~5 GB RAM（使用 3B 模型）
 
 ## 架构
 

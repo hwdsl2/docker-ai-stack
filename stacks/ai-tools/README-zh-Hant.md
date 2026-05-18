@@ -6,7 +6,7 @@
 
 **服務：** Ollama (LLM) + LiteLLM (閘道) + MCP Gateway
 
-**記憶體：** ~3 GB RAM（使用 3B 模型）
+**記憶體：** ~5 GB RAM（使用 3B 模型）
 
 ## 架構
 

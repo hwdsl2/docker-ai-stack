@@ -10,7 +10,7 @@
 - 安全：Ollama、LiteLLM 和 MCP Gateway 自動產生 API 金鑰
 - 隱私：音訊、向量嵌入和大型語言模型推理均在本機執行 — 無資料發送給第三方
 - 可選驗證：Whisper、WhisperLive、Kokoro、Embeddings 和 Docling 預設無需 API 金鑰（對外網路部署時可透過 env 檔案設定金鑰）
-- 提供[輕量級技術堆疊](#輕量級技術堆疊)，降低記憶體需求（最低約 2.5 GB）
+- 提供[輕量級技術堆疊](#輕量級技術堆疊)，降低記憶體需求（最低約 4.5 GB）
 - 支援 NVIDIA CUDA GPU 加速
 
 **注：** 當使用 LiteLLM 連接外部提供商（如 OpenAI、Anthropic）時，您的資料將發送給這些提供商。
@@ -63,7 +63,7 @@ graph LR
 **系統需求：**
 
 - 一台安裝了 Docker 的 Linux 伺服器（本機或雲端）
-- 至少 8 GB 記憶體（使用小型模型）。對於較大的 LLM 模型（8B+），建議 32 GB 或以上。
+- 至少 8 GB 記憶體（使用小型模型）。對於較大的 LLM 模型（8B+），建議 16 GB 或以上。
 - 您可以註解掉不需要的服務以減少記憶體使用。
 
 **啟動完整技術堆疊：**
@@ -146,12 +146,12 @@ docker compose -f docker-compose.cuda.yml up -d
 
 | 技術堆疊 | 服務 | 記憶體 | 使用場景 |
 |---|---|---|---|
-| **[chat-ui](stacks/chat-ui/README-zh-Hant.md)** | Ollama + LiteLLM + AnythingLLM | ~3 GB | 基於 Web 的 ChatGPT 式聊天介面 |
-| **[voice-pipeline](stacks/voice-pipeline/README-zh-Hant.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 GB | 語音轉文字 → LLM → 文字轉語音 |
-| **[rag-pipeline](stacks/rag-pipeline/README-zh-Hant.md)** | Ollama + LiteLLM + Embeddings | ~3 GB | 語意搜尋 + LLM 問答 |
-| **[rag-pipeline-full](stacks/rag-pipeline-full/README-zh-Hant.md)** | Ollama + LiteLLM + Embeddings + Docling | ~4 GB | 文件解析 + 語意搜尋 + LLM 問答 |
-| **[ai-tools](stacks/ai-tools/README-zh-Hant.md)** | Ollama + LiteLLM + MCP Gateway | ~3 GB | AI 程式設計助手，支援工具存取 |
-| **[chat-only](stacks/chat-only/README-zh-Hant.md)** | Ollama + LiteLLM | ~2.5 GB | 最小化本機 ChatGPT 替代方案 |
+| **[chat-ui](stacks/chat-ui/README-zh-Hant.md)** | Ollama + LiteLLM + AnythingLLM | ~5 GB | 基於 Web 的 ChatGPT 式聊天介面 |
+| **[voice-pipeline](stacks/voice-pipeline/README-zh-Hant.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~6 GB | 語音轉文字 → LLM → 文字轉語音 |
+| **[rag-pipeline](stacks/rag-pipeline/README-zh-Hant.md)** | Ollama + LiteLLM + Embeddings | ~5 GB | 語意搜尋 + LLM 問答 |
+| **[rag-pipeline-full](stacks/rag-pipeline-full/README-zh-Hant.md)** | Ollama + LiteLLM + Embeddings + Docling | ~6 GB | 文件解析 + 語意搜尋 + LLM 問答 |
+| **[ai-tools](stacks/ai-tools/README-zh-Hant.md)** | Ollama + LiteLLM + MCP Gateway | ~5 GB | AI 程式設計助手，支援工具存取 |
+| **[chat-only](stacks/chat-only/README-zh-Hant.md)** | Ollama + LiteLLM | ~4.5 GB | 最小化本機 ChatGPT 替代方案 |
 
 ```bash
 git clone https://github.com/hwdsl2/docker-ai-stack
@@ -244,6 +244,8 @@ compose 檔案中已預設 `LITELLM_MCP_URL=http://mcp:3000/mcp` 和 `LITELLM_OL
 ## 語音管道範例
 
 轉錄語音問題，透過 Ollama 取得本機 LLM 回應，然後轉換為語音：
+
+**注意：** Kokoro（TTS）預設已停用。如需使用此範例，請先取消 `docker-compose.yml` 中 `kokoro` 服務的註解，然後執行 `docker compose up -d`。
 
 **提示：** 需要範例音訊檔案？可以從 [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk) 儲存庫下載這個英語語音範例（WAV 格式，MIT 授權）：
 

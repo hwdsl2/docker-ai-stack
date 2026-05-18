@@ -6,7 +6,7 @@ A local ChatGPT-like experience — web-based chat UI powered by a local LLM wit
 
 **Services:** Ollama (LLM) + LiteLLM (gateway) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (chat UI)
 
-**Memory:** ~3 GB RAM (with a 3B model)
+**Memory:** ~5 GB RAM (with a 3B model)
 
 ## Architecture
 

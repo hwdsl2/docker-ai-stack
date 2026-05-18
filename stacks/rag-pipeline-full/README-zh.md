@@ -6,7 +6,7 @@
 
 **服务：** Ollama (LLM) + LiteLLM (网关) + Embeddings + Docling (文档解析)
 
-**内存：** ~4 GB RAM（使用 3B 模型）
+**内存：** ~6 GB RAM（使用 3B 模型）
 
 ## 架构
 

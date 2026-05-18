@@ -6,7 +6,7 @@ Speech-to-text → LLM → text-to-speech. Transcribe audio, get an AI response,
 
 **Services:** Whisper (STT) + Ollama (LLM) + LiteLLM (gateway) + Kokoro (TTS)
 
-**Memory:** ~5 GB RAM (with a 3B model)
+**Memory:** ~6 GB RAM (with a 3B model)
 
 ## Architecture
 

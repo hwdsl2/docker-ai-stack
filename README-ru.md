@@ -10,7 +10,7 @@
 - Безопасность: Ollama, LiteLLM и MCP Gateway автоматически генерируют API-ключи
 - Приватность: аудио, эмбеддинги и LLM-инференс выполняются локально — данные не отправляются третьим лицам
 - Опциональная авторизация: Whisper, WhisperLive, Kokoro, Embeddings и Docling работают без API-ключей по умолчанию (задайте ключи через env-файлы для публичных развёртываний)
-- [Облегчённые стеки](#облегчённые-стеки) с меньшими требованиями к памяти (от ~2.5 ГБ)
+- [Облегчённые стеки](#облегчённые-стеки) с меньшими требованиями к памяти (от ~4.5 ГБ)
 - GPU-ускорение через NVIDIA CUDA
 
 **Примечание:** При использовании LiteLLM с внешними провайдерами (например, OpenAI, Anthropic) ваши данные будут отправляться этим провайдерам.
@@ -63,7 +63,7 @@ graph LR
 **Требования:**
 
 - Linux-сервер (локальный или облачный) с установленным Docker
-- Минимум 8 ГБ оперативной памяти (с небольшими моделями). Для крупных LLM-моделей (8B+) рекомендуется 32 ГБ и более.
+- Минимум 8 ГБ оперативной памяти (с небольшими моделями). Для крупных LLM-моделей (8B+) рекомендуется 16 ГБ и более.
 - Вы можете закомментировать ненужные сервисы для уменьшения потребления памяти.
 
 **Запуск полного стека:**
@@ -146,12 +146,12 @@ docker compose -f docker-compose.cuda.yml up -d
 
 | Стек | Сервисы | Память | Сценарий использования |
 |---|---|---|---|
-| **[chat-ui](stacks/chat-ui/README-ru.md)** | Ollama + LiteLLM + AnythingLLM | ~3 ГБ | Веб-интерфейс для чата в стиле ChatGPT |
-| **[voice-pipeline](stacks/voice-pipeline/README-ru.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~5 ГБ | Речь в текст → LLM → текст в речь |
-| **[rag-pipeline](stacks/rag-pipeline/README-ru.md)** | Ollama + LiteLLM + Embeddings | ~3 ГБ | Семантический поиск + LLM Q&A |
-| **[rag-pipeline-full](stacks/rag-pipeline-full/README-ru.md)** | Ollama + LiteLLM + Embeddings + Docling | ~4 ГБ | Разбор документов + семантический поиск + LLM Q&A |
-| **[ai-tools](stacks/ai-tools/README-ru.md)** | Ollama + LiteLLM + MCP Gateway | ~3 ГБ | AI-ассистент для разработки с доступом к инструментам |
-| **[chat-only](stacks/chat-only/README-ru.md)** | Ollama + LiteLLM | ~2.5 ГБ | Минимальная локальная замена ChatGPT |
+| **[chat-ui](stacks/chat-ui/README-ru.md)** | Ollama + LiteLLM + AnythingLLM | ~5 ГБ | Веб-интерфейс для чата в стиле ChatGPT |
+| **[voice-pipeline](stacks/voice-pipeline/README-ru.md)** | Whisper + Ollama + LiteLLM + Kokoro | ~6 ГБ | Речь в текст → LLM → текст в речь |
+| **[rag-pipeline](stacks/rag-pipeline/README-ru.md)** | Ollama + LiteLLM + Embeddings | ~5 ГБ | Семантический поиск + LLM Q&A |
+| **[rag-pipeline-full](stacks/rag-pipeline-full/README-ru.md)** | Ollama + LiteLLM + Embeddings + Docling | ~6 ГБ | Разбор документов + семантический поиск + LLM Q&A |
+| **[ai-tools](stacks/ai-tools/README-ru.md)** | Ollama + LiteLLM + MCP Gateway | ~5 ГБ | AI-ассистент для разработки с доступом к инструментам |
+| **[chat-only](stacks/chat-only/README-ru.md)** | Ollama + LiteLLM | ~4.5 ГБ | Минимальная локальная замена ChatGPT |
 
 ```bash
 git clone https://github.com/hwdsl2/docker-ai-stack
@@ -244,6 +244,8 @@ API-ключи автоматически передаются между сер
 ## Пример голосового конвейера
 
 Транскрибируйте голосовой вопрос, получите ответ от локальной LLM через Ollama и преобразуйте его в речь:
+
+**Примечание:** Kokoro (TTS) отключён по умолчанию. Чтобы использовать этот пример, сначала раскомментируйте сервис `kokoro` в файле `docker-compose.yml`, затем выполните `docker compose up -d`.
 
 **Совет:** Нужен образец аудиофайла? Скачайте этот образец английской речи (WAV, лицензия MIT) из репозитория [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk):
 

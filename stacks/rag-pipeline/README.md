@@ -6,7 +6,7 @@ Embed documents for semantic search and answer questions with a local LLM.
 
 **Services:** Ollama (LLM) + LiteLLM (gateway) + Embeddings
 
-**Memory:** ~3 GB RAM (with a 3B model)
+**Memory:** ~5 GB RAM (with a 3B model)
 
 ## Architecture
 

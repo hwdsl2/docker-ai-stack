@@ -6,7 +6,7 @@
 
 **Сервисы:** Ollama (LLM) + LiteLLM (шлюз) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (чат-интерфейс)
 
-**Память:** ~3 ГБ RAM (с моделью 3B)
+**Память:** ~5 ГБ RAM (с моделью 3B)
 
 ## Архитектура
 

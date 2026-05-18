@@ -6,7 +6,7 @@
 
 **服務：** Whisper (STT) + Ollama (LLM) + LiteLLM (閘道) + Kokoro (TTS)
 
-**記憶體：** ~5 GB RAM（使用 3B 模型）
+**記憶體：** ~6 GB RAM（使用 3B 模型）
 
 ## 架構
 

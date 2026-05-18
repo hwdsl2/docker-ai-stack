@@ -6,7 +6,7 @@ Local LLM with MCP tool access for AI coding assistants (Cline, Claude, Cursor, 
 
 **Services:** Ollama (LLM) + LiteLLM (gateway) + MCP Gateway
 
-**Memory:** ~3 GB RAM (with a 3B model)
+**Memory:** ~5 GB RAM (with a 3B model)
 
 ## Architecture
 

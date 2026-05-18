@@ -6,7 +6,7 @@
 
 **服務：** Ollama (LLM) + LiteLLM (閘道) + Embeddings + Docling (文件解析)
 
-**記憶體：** ~4 GB RAM（使用 3B 模型）
+**記憶體：** ~6 GB RAM（使用 3B 模型）
 
 ## 架構
 
