@@ -76,16 +76,6 @@ services:
       - whisper-data:/var/lib/whisper
       # - ./whisper.env:/whisper.env:ro  # optional: custom config
 
-  kokoro:
-    image: hwdsl2/kokoro-server
-    container_name: kokoro
-    restart: always
-    ports:
-      - "127.0.0.1:8880:8880/tcp"
-    volumes:
-      - kokoro-data:/var/lib/kokoro
-      # - ./kokoro.env:/kokoro.env:ro  # optional: custom config
-
   mcp:
     image: hwdsl2/mcp-gateway
     container_name: mcp
@@ -126,7 +116,7 @@ services:
     depends_on:
       - litellm
 
-  # docling:
+  # docling:  # Uncomment to enable document parsing (PDF, DOCX, etc.); also uncomment docling-data volume below
   #   image: hwdsl2/docling-server
   #   container_name: docling
   #   restart: always
@@ -136,7 +126,17 @@ services:
   #     - docling-data:/var/lib/docling
   #     # - ./docling.env:/docling.env:ro  # optional: custom config
 
-  # whisper-live:
+  # kokoro:  # Uncomment to enable text-to-speech (TTS); also uncomment kokoro-data volume below
+  #   image: hwdsl2/kokoro-server
+  #   container_name: kokoro
+  #   restart: always
+  #   ports:
+  #     - "127.0.0.1:8880:8880/tcp"
+  #   volumes:
+  #     - kokoro-data:/var/lib/kokoro
+  #     # - ./kokoro.env:/kokoro.env:ro  # optional: custom config
+
+  # whisper-live:  # Uncomment to enable real-time speech-to-text (WebSocket); also uncomment whisper-live-data volume below
   #   image: hwdsl2/whisper-live-server
   #   container_name: whisper-live
   #   restart: always
@@ -158,8 +158,6 @@ volumes:
     name: embeddings-data
   whisper-data:
     name: whisper-data
-  kokoro-data:
-    name: kokoro-data
   mcp-data:
     name: mcp-data
   mcp-shared:
@@ -172,5 +170,7 @@ volumes:
     name: litellm-db
   # docling-data:
   #   name: docling-data
+  # kokoro-data:
+  #   name: kokoro-data
   # whisper-live-data:
   #   name: whisper-live-data
