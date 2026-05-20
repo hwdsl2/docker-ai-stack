@@ -1,0 +1,97 @@
+services:
+  ollama:
+    image: hwdsl2/ollama-server
+    container_name: ollama
+    restart: always
+    volumes:
+      - ollama-data:/var/lib/ollama
+      - ollama-shared:/var/lib/ollama-shared
+      # - ./ollama.env:/ollama.env:ro  # optional: custom config
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:11434/"]
+      interval: 5s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
+
+  db:
+    image: postgres:18
+    container_name: litellm-db
+    restart: always
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: litellm
+      POSTGRES_DB: litellm
+    volumes:
+      - litellm-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  litellm:
+    image: hwdsl2/litellm-server
+    container_name: litellm
+    restart: always
+    ports:
+      - "4000:4000/tcp"
+    environment:
+      - LITELLM_OLLAMA_BASE_URL=http://ollama:11434
+      - LITELLM_MCP_URL=http://mcp:3000/mcp
+      - LITELLM_DATABASE_URL=postgresql://litellm:litellm@db:5432/litellm
+    volumes:
+      - litellm-data:/etc/litellm
+      - ollama-shared:/var/lib/ollama-shared:ro
+      - mcp-shared:/var/lib/mcp-shared:ro
+      # - ./litellm.env:/litellm.env:ro  # optional: custom config
+    depends_on:
+      ollama:
+        condition: service_healthy
+      mcp:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
+  mcp:
+    image: hwdsl2/mcp-gateway
+    container_name: mcp
+    restart: always
+    # ports:
+    #   - "3000:3000/tcp"  # Uncomment for direct MCP client access (e.g. Claude Desktop, Cursor)
+    volumes:
+      - mcp-data:/var/lib/mcp
+      - mcp-shared:/var/lib/mcp-shared
+      # - ./mcp.env:/mcp.env:ro  # optional: custom config
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
+
+  embeddings:
+    image: hwdsl2/embeddings-server
+    container_name: embeddings
+    restart: always
+    ports:
+      - "127.0.0.1:8000:8000/tcp"
+    volumes:
+      - embeddings-data:/var/lib/embeddings
+      # - ./embed.env:/embed.env:ro  # optional: custom config
+
+volumes:
+  ollama-data:
+    name: ollama-data
+  ollama-shared:
+    name: ollama-shared
+  litellm-data:
+    name: litellm-data
+  mcp-data:
+    name: mcp-data
+  mcp-shared:
+    name: mcp-shared
+  embeddings-data:
+    name: embeddings-data
+  litellm-db:
+    name: litellm-db

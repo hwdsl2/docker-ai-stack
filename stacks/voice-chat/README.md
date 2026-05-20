@@ -1,0 +1,261 @@
+[English](README.md) | [简体中文](README-zh.md) | [繁體中文](README-zh-Hant.md) | [Русский](README-ru.md)
+
+# Voice Chat
+
+Web-based chat UI with voice input (speech-to-text) and voice output (text-to-speech) — a complete local AI personal assistant.
+
+**Services:** Ollama (LLM) + LiteLLM (gateway) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (chat UI) + Whisper (STT) + Kokoro (TTS)
+
+**Memory:** ~6.5 GB RAM (with a 3B model)
+
+## Architecture
+
+```mermaid
+graph LR
+    U["👤 User"] -->|chat| A["AnythingLLM<br/>(chat UI)"]
+    U -->|speak| W["Whisper<br/>(speech-to-text)"]
+    A -->|API| L["LiteLLM<br/>(AI gateway)"]
+    L -->|routes to| O["Ollama<br/>(local LLM)"]
+    L -->|response| K["Kokoro<br/>(text-to-speech)"]
+    K --> S["🔊 Audio output"]
+    W -->|text| L
+```
+
+## Services
+
+| Service | Role | Default port |
+|---|---|---|
+| **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama)** | Runs local LLM models (llama3, qwen, mistral, etc.) | `11434` |
+| **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI gateway with Admin UI — routes requests to Ollama and 100+ providers | `4000` |
+| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | Web-based chat UI with workspaces, RAG, and agent support | `3001` |
+| **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper)** | Transcribes spoken audio to text | `9000` |
+| **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro)** | Converts text to natural-sounding speech | `8880` |
+
+## Quick start
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack/stacks/voice-chat
+docker compose up -d
+```
+
+**Pull a model** (required before making LLM requests):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
+
+**Open the chat UI:**
+
+AnythingLLM is pre-configured to connect to LiteLLM. The API key is shared automatically via a Docker volume — no manual setup needed.
+
+Open `http://<server-ip>:3001` in your browser — you can start chatting right away. The LLM provider, base URL, and model are pre-configured.
+
+**Note:** On first start, AnythingLLM may take a few minutes to become available while it waits for the LiteLLM API key. Check progress with `docker logs anythingllm`.
+
+**Note:** For internet-facing deployments, using a [reverse proxy](#using-a-reverse-proxy) to add HTTPS is **strongly recommended**. In that case, also change `"3001:3001/tcp"` to `"127.0.0.1:3001:3001/tcp"` and `"4000:4000/tcp"` to `"127.0.0.1:4000:4000/tcp"` in `docker-compose.yml`, to prevent direct access to the unencrypted ports. [Set a password](https://docs.useanything.com/features/security-and-access) to protect AnythingLLM, especially when the server is accessible from the public internet.
+
+## GPU acceleration (NVIDIA CUDA)
+
+For NVIDIA GPU acceleration, use the CUDA compose file:
+
+```bash
+docker compose -f docker-compose.cuda.yml up -d
+```
+
+**Requirements:** NVIDIA GPU, [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) 535+, and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the host. CUDA images are `linux/amd64` only.
+
+## Running without Docker Compose
+
+If you prefer using `docker run` commands directly, first create a shared network so services can communicate:
+
+```bash
+docker network create ai-stack
+```
+
+Then start each service on the shared network:
+
+```bash
+# PostgreSQL (required by LiteLLM)
+docker run -d --name litellm-db --restart always \
+    --network ai-stack \
+    -e POSTGRES_USER=litellm \
+    -e POSTGRES_PASSWORD=litellm \
+    -e POSTGRES_DB=litellm \
+    -v litellm-db:/var/lib/postgresql \
+    postgres:18
+
+# Ollama (LLM)
+docker run -d --name ollama --restart always \
+    --network ai-stack \
+    -v ollama-data:/var/lib/ollama \
+    -v ollama-shared:/var/lib/ollama-shared \
+    hwdsl2/ollama-server
+
+# LiteLLM (AI gateway)
+docker run -d --name litellm --restart always \
+    --network ai-stack \
+    -p 4000:4000 \
+    -e LITELLM_OLLAMA_BASE_URL=http://ollama:11434 \
+    -e LITELLM_DATABASE_URL=postgresql://litellm:litellm@litellm-db:5432/litellm \
+    -v litellm-data:/etc/litellm \
+    -v ollama-shared:/var/lib/ollama-shared:ro \
+    -v litellm-shared:/var/lib/litellm-shared \
+    hwdsl2/litellm-server
+
+# AnythingLLM (chat UI)
+docker run -d --name anythingllm --restart always \
+    --network ai-stack \
+    -p 3001:3001 \
+    -e STORAGE_DIR=/app/server/storage \
+    -e LLM_PROVIDER=generic-openai \
+    -e GENERIC_OPEN_AI_BASE_PATH=http://litellm:4000/v1 \
+    -e GENERIC_OPEN_AI_MODEL_PREF=ollama/llama3.2:3b \
+    -e GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT=131072 \
+    -e EMBEDDING_ENGINE=native \
+    -e DISABLE_TELEMETRY=true \
+    -v anythingllm-data:/app/server/storage \
+    -v litellm-shared:/var/lib/litellm-shared:ro \
+    -v "$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro" \
+    --entrypoint /bin/bash \
+    mintplexlabs/anythingllm \
+    /usr/local/bin/chat-ui-bootstrap.sh
+
+# Whisper (STT)
+docker run -d --name whisper --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9000:9000 \
+    -v whisper-data:/var/lib/whisper \
+    hwdsl2/whisper-server
+
+# Kokoro (TTS)
+docker run -d --name kokoro --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:8880:8880 \
+    -v kokoro-data:/var/lib/kokoro \
+    hwdsl2/kokoro-server
+```
+
+**Note:** The shared network allows services to reach each other by container name (e.g., AnythingLLM connects to LiteLLM via `http://litellm:4000`).
+
+**Pull a model** (required before making LLM requests):
+
+```bash
+docker exec ollama ollama_manage --pull llama3.2:3b
+```
+
+## Verify deployment
+
+After starting the stack, you can verify that all services are running correctly:
+
+```bash
+# Run from the docker-ai-stack root directory
+../../stack-check.sh
+```
+
+**Access the LiteLLM Admin UI:**
+
+Open `http://<server-ip>:4000/ui` in your browser. Log in with username `admin` and your LiteLLM master key as the password. The UI provides virtual key management, spend tracking, and model configuration.
+
+**Try it in the Playground:**
+
+In the Admin UI, click **Playground** in the left menu. Select a local model (e.g., `ollama/llama3.2:3b`) from the dropdown and start chatting — this is a quick way to verify your local LLM is working end-to-end.
+
+## Customization
+
+Each service can be configured with an optional env file. Copy the example env file from the respective repository, edit it, and uncomment the volume mount in `docker-compose.yml`:
+
+| Service | Env file | Repository |
+|---|---|---|
+| Ollama | `ollama.env` | [docker-ollama](https://github.com/hwdsl2/docker-ollama) |
+| LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm) |
+| Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper) |
+| Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro) |
+
+AnythingLLM is configured through its web UI at `http://<server-ip>:3001`. You can change the LLM provider, model, embedding engine, and other settings in **Settings**.
+
+For detailed configuration options, API reference, and model management, see the documentation in each service's repository.
+
+## Using a reverse proxy
+
+For internet-facing deployments, place a reverse proxy in front of AnythingLLM to handle HTTPS termination. The server works without HTTPS on a local or trusted network, but HTTPS is recommended when the chat UI is exposed to the internet.
+
+Use one of the following addresses to reach the AnythingLLM container from your reverse proxy:
+
+- **`anythingllm:3001`** — if your reverse proxy runs as a container in the **same Docker network** as AnythingLLM (e.g. defined in the same `docker-compose.yml`).
+- **`127.0.0.1:3001`** — if your reverse proxy runs **on the host** and port `3001` is published (the default `docker-compose.yml` publishes it).
+
+**Example with [Caddy](https://caddyserver.com/docs/) ([Docker image](https://hub.docker.com/_/caddy))** (automatic TLS via Let's Encrypt, reverse proxy in the same Docker network):
+
+`Caddyfile`:
+```
+chat.example.com {
+  reverse_proxy anythingllm:3001
+}
+```
+
+**Example with nginx** (reverse proxy on the host):
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name chat.example.com;
+
+    ssl_certificate     /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass         http://127.0.0.1:3001;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_read_timeout 300s;
+    }
+}
+```
+
+**Important:** AnythingLLM includes its own user authentication system — set a strong password on first setup when exposing the service to the internet.
+
+## Update images
+
+To update all services to the latest versions:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Your data is preserved in the Docker volumes.
+
+## Voice pipeline example
+
+Transcribe a spoken question, get a local LLM response, and convert it to speech:
+
+**Tip:** Need a sample audio file? Download this English speech sample (WAV, MIT License) from the [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk) repository:
+
+```bash
+curl -L -o sample_speech.wav \
+    "https://github.com/Azure-Samples/cognitive-services-speech-sdk/raw/master/sampledata/audiofiles/katiesteve.wav"
+```
+
+```bash
+LITELLM_KEY=$(docker exec litellm litellm_manage --getkey)
+
+# Step 1: Transcribe audio to text (Whisper)
+TEXT=$(curl -s http://localhost:9000/v1/audio/transcriptions \
+    -F file=@sample_speech.wav -F model=whisper-1 | jq -r .text)
+
+# Step 2: Send text to Ollama via LiteLLM and get a response
+RESPONSE=$(curl -s http://localhost:4000/v1/chat/completions \
+    -H "Authorization: Bearer $LITELLM_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"model\":\"ollama/llama3.2:3b\",\"messages\":[{\"role\":\"user\",\"content\":\"$TEXT\"}]}" \
+    | jq -r '.choices[0].message.content')
+
+# Step 3: Convert the response to speech (Kokoro TTS)
+curl -s http://localhost:8880/v1/audio/speech \
+    -H "Content-Type: application/json" \
+    -d "{\"model\":\"tts-1\",\"input\":\"$RESPONSE\",\"voice\":\"af_heart\"}" \
+    --output response.mp3
