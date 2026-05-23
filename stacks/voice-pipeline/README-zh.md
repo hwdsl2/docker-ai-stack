@@ -29,6 +29,8 @@ graph LR
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)** | 带管理界面的 AI 网关 — 将请求路由至 Ollama 及 100+ 供应商 | `4000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md)** | 将文本转换为自然语音 | `8880` |
 
+**注意：** WhisperLive（实时 STT）在 `docker-compose.yml` 中默认被注释掉。取消注释即可启用通过 WebSocket 的实时转录。
+
 ## 快速开始
 
 ```bash
@@ -103,6 +105,13 @@ docker run -d --name kokoro --restart always \
     -p 127.0.0.1:8880:8880 \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
+
+# WhisperLive (real-time STT)
+docker run -d --name whisper-live --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9090:9090 \
+    -v whisper-live-data:/var/lib/whisper-live \
+    hwdsl2/whisper-live-server
 ```
 
 **注：** 共享网络允许服务通过容器名称互相访问（例如 LiteLLM 通过 `http://ollama:11434` 连接 Ollama）。
@@ -142,12 +151,17 @@ docker exec ollama ollama_manage --pull llama3.2:3b
 | LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md) |
 | Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh.md) |
 | Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md) |
+| WhisperLive | `whisper-live.env` | [docker-whisper-live](https://github.com/hwdsl2/docker-whisper-live) |
 
 有关详细配置选项、API 参考和模型管理，请参阅各服务仓库的文档。
 
 ## 面向互联网的部署
 
 默认情况下，所有服务通过纯 HTTP 监听。对于面向互联网的部署，请在技术栈前面放置反向代理（例如 [Caddy](https://caddyserver.com/)、Nginx 或 Traefik）以提供 HTTPS。每个服务仓库都包含详细的[反向代理指南](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md#使用反向代理)，含 Caddy 和 nginx 示例。
+
+## 备份和恢复
+
+有关备份/恢复说明，请参阅[备份和恢复](../../docs/backup-restore-zh.md)指南。
 
 ## 更新镜像
 
@@ -158,7 +172,7 @@ docker compose pull
 docker compose up -d
 ```
 
-您的数据保存在 Docker 卷中。
+您的数据保存在 Docker 卷中。 **升级前务必先[备份](../../docs/backup-restore-zh.md)。**
 
 ## 示例
 

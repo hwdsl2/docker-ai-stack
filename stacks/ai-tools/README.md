@@ -141,6 +141,10 @@ For detailed configuration options, API reference, and model management, see the
 
 By default, all services listen over plain HTTP. For internet-facing deployments, place a reverse proxy (e.g., [Caddy](https://caddyserver.com/), Nginx, or Traefik) in front of the stack to provide HTTPS. Each service repository includes a detailed [reverse proxy guide](https://github.com/hwdsl2/docker-litellm#using-a-reverse-proxy) with Caddy and nginx examples.
 
+## Backup and restore
+
+For backup/restore instructions, see the [Backup and Restore](../../docs/backup-restore.md) guide.
+
 ## Update images
 
 To update all services to the latest versions:
@@ -150,7 +154,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Your data is preserved in the Docker volumes.
+Your data is preserved in the Docker volumes. **Always [back up](../../docs/backup-restore.md) before upgrading.**
 
 ## Connect MCP Gateway to LiteLLM
 

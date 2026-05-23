@@ -21,7 +21,7 @@ Deploy a complete, self-hosted AI stack on your own server with a single command
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama)** | Runs local LLM models (llama3, qwen, mistral, etc.) | `11434` |
 | **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | Web-based chat UI — works instantly with no login required | `3001` |
-| **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI gateway — routes requests to Ollama, OpenAI, Anthropic, and 100+ providers | `4000` |
+| **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI gateway with Admin UI — routes requests to Ollama and 100+ providers | `4000` |
 | **[Embeddings](https://github.com/hwdsl2/docker-embeddings)** | Converts text to vectors for semantic search and RAG | `8000` |
 | **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper)** | Transcribes spoken audio to text | `9000` |
 | **[WhisperLive (real-time STT)](https://github.com/hwdsl2/docker-whisper-live)** | Real-time speech-to-text transcription over WebSocket | `9090` |
@@ -61,6 +61,11 @@ graph LR
     U -->|speak| A
     U -->|upload| D
 ```
+
+**Notes:**
+
+- Ollama's port (`11434`) and MCP Gateway's port (`3000`) are internal to the Docker network and not exposed to the host by default. Access your LLM through LiteLLM on port `4000`.
+- Kokoro (TTS) and Docling (document parsing) are commented out by default in `docker-compose.yml` to reduce memory usage. Uncomment them to enable.
 
 ## Quick start
 
@@ -225,6 +230,13 @@ docker run -d --name whisper --restart always \
     -p 127.0.0.1:9000:9000 \
     -v whisper-data:/var/lib/whisper \
     hwdsl2/whisper-server
+
+# WhisperLive (real-time STT)
+docker run -d --name whisper-live --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9090:9090 \
+    -v whisper-live-data:/var/lib/whisper-live \
+    hwdsl2/whisper-live-server
 
 # AnythingLLM (chat UI)
 docker run -d --name anythingllm --restart always \

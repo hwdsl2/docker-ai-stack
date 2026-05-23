@@ -84,6 +84,45 @@ docker run --rm \
 
 If you're running a lightweight stack (e.g., chat-only), only the relevant volumes exist. The backup loop above automatically skips missing volumes.
 
+### Hot backup (no downtime) for PostgreSQL
+
+If you cannot afford downtime, use `pg_dump` to back up the PostgreSQL database while services are running:
+
+```bash
+docker exec litellm-db pg_dump -U litellm litellm | gzip > backups/litellm-db.sql.gz
+```
+
+To restore from a SQL dump:
+
+```bash
+# Start only the database container
+docker compose up -d litellm-db
+sleep 5
+
+# Drop and recreate the database, then restore
+docker exec litellm-db dropdb -U litellm litellm --if-exists
+docker exec litellm-db createdb -U litellm litellm
+gunzip -c backups/litellm-db.sql.gz | docker exec -i litellm-db psql -U litellm litellm
+
+# Start remaining services
+docker compose up -d
+```
+
+### Which volumes need downtime?
+
+| Volume | Hot backup safe? | Notes |
+|---|---|---|
+| `litellm-db` | ✅ Yes (use `pg_dump`) | PostgreSQL supports consistent hot dumps |
+| `embeddings-data` | ✅ Yes | Read-only after initial model download |
+| `whisper-data` | ✅ Yes | Read-only after initial model download |
+| `whisper-live-data` | ✅ Yes | Read-only after initial model download |
+| `kokoro-data` | ✅ Yes | Read-only after initial model download |
+| `docling-data` | ✅ Yes | Read-only after initial model download |
+| `ollama-data` | ⚠️ Stop first | Writes during model pulls; safe if no pull is in progress |
+| `litellm-data` | ⚠️ Stop first | Contains config that may be written on startup |
+| `mcp-data` | ⚠️ Stop first | Contains config that may be written on startup |
+| `anythingllm-data` | ⚠️ Stop first | Active writes during chat sessions |
+
 ## Restore all volumes
 
 **Warning:** Restoring overwrites all existing data in the target volumes, including API keys. Any clients using the old keys will need to be updated.
@@ -197,3 +236,16 @@ docker compose up -d
 - **Model caches** (`embeddings-data`, `whisper-data`, `whisper-live-data`, `kokoro-data`, `docling-data`) are downloaded automatically on first start. You can skip backing these up if bandwidth is not a concern — they will be re-downloaded.
 - **Critical volumes** that should always be backed up: `ollama-data` (if custom models), `litellm-data`, `litellm-db`, `mcp-data` (contain API keys and configuration), and `anythingllm-data` (chat history and workspaces).
 - Backups are standard `.tar.gz` archives. You can inspect contents with: `tar tzf backups/ollama-data.tar.gz`
+
+### Volumes by stack
+
+| Stack | Volumes used |
+|---|---|
+| chat-only | `ollama-data`, `litellm-data`, `litellm-db`, `ollama-shared` |
+| chat-ui | `ollama-data`, `litellm-data`, `litellm-db`, `anythingllm-data`, `ollama-shared`, `litellm-shared` |
+| voice-pipeline | `ollama-data`, `litellm-data`, `litellm-db`, `whisper-data`, `kokoro-data`, `ollama-shared` |
+| voice-chat | `ollama-data`, `litellm-data`, `litellm-db`, `anythingllm-data`, `whisper-data`, `kokoro-data`, `ollama-shared`, `litellm-shared` |
+| rag-pipeline | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `ollama-shared` |
+| rag-pipeline-full | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `docling-data`, `ollama-shared` |
+| code-assistant | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `mcp-data`, `ollama-shared`, `mcp-shared` |
+| ai-tools | `ollama-data`, `litellm-data`, `litellm-db`, `mcp-data`, `ollama-shared`, `mcp-shared` |

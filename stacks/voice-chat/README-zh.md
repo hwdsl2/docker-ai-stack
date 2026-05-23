@@ -4,7 +4,7 @@
 
 基于网页的聊天界面，配合语音输入（语音转文字）和语音输出（文字转语音）— 完整的本地 AI 个人助手。
 
-**服务：** Ollama (LLM) + LiteLLM (网关) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (聊天界面) + Whisper (STT) + Kokoro (TTS)
+**服务：** Ollama (LLM) + LiteLLM (网关) + [AnythingLLM](https://github.com/mintplex-labs/anything-llm) (聊天界面) + Whisper (STT) + Kokoro (TTS)
 
 **内存：** ~6.5 GB RAM（使用 3B 模型）
 
@@ -27,7 +27,7 @@ graph LR
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh.md)** | 运行本地 LLM 模型（llama3、qwen、mistral 等） | `11434` |
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)** | 带管理界面的 AI 网关 — 将请求路由至 Ollama 及 100+ 供应商 | `4000` |
-| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | 基于网页的聊天界面，支持工作区、RAG 和代理 | `3001` |
+| **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | 基于网页的聊天界面，支持工作区、RAG 和代理 | `3001` |
 | **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh.md)** | 将语音音频转录为文字 | `9000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md)** | 将文字转换为自然语音 | `8880` |
 
@@ -218,6 +218,10 @@ server {
 
 **重要：** AnythingLLM 包含自己的用户认证系统 — 在将服务暴露到互联网时请在首次设置时设定强密码。
 
+## 备份和恢复
+
+有关备份/恢复说明，请参阅[备份和恢复](../../docs/backup-restore-zh.md)指南。
+
 ## 更新镜像
 
 将所有服务更新到最新版本：
@@ -227,7 +231,7 @@ docker compose pull
 docker compose up -d
 ```
 
-您的数据保存在 Docker 卷中。
+您的数据保存在 Docker 卷中。 **升级前务必先[备份](../../docs/backup-restore-zh.md)。**
 
 ## 语音管道示例
 

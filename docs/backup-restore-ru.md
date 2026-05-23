@@ -84,6 +84,45 @@ docker run --rm \
 
 Если вы используете облегчённый стек (например, chat-only), существуют только соответствующие тома. Цикл резервного копирования выше автоматически пропускает отсутствующие тома.
 
+### Горячее резервное копирование (без простоя) PostgreSQL
+
+Если простой недопустим, используйте `pg_dump` для резервного копирования базы данных PostgreSQL при работающих сервисах:
+
+```bash
+docker exec litellm-db pg_dump -U litellm litellm | gzip > backups/litellm-db.sql.gz
+```
+
+Восстановление из SQL-дампа:
+
+```bash
+# Запустите только контейнер базы данных
+docker compose up -d litellm-db
+sleep 5
+
+# Удалите и пересоздайте базу данных, затем восстановите
+docker exec litellm-db dropdb -U litellm litellm --if-exists
+docker exec litellm-db createdb -U litellm litellm
+gunzip -c backups/litellm-db.sql.gz | docker exec -i litellm-db psql -U litellm litellm
+
+# Запустите остальные сервисы
+docker compose up -d
+```
+
+### Какие тома требуют остановки?
+
+| Том | Горячее копирование безопасно? | Примечания |
+|---|---|---|
+| `litellm-db` | ✅ Да (используйте `pg_dump`) | PostgreSQL поддерживает консистентные горячие дампы |
+| `embeddings-data` | ✅ Да | Только чтение после начальной загрузки модели |
+| `whisper-data` | ✅ Да | Только чтение после начальной загрузки модели |
+| `whisper-live-data` | ✅ Да | Только чтение после начальной загрузки модели |
+| `kokoro-data` | ✅ Да | Только чтение после начальной загрузки модели |
+| `docling-data` | ✅ Да | Только чтение после начальной загрузки модели |
+| `ollama-data` | ⚠️ Сначала остановите | Запись при загрузке моделей; безопасно, если загрузка не выполняется |
+| `litellm-data` | ⚠️ Сначала остановите | Содержит конфигурацию, которая может записываться при запуске |
+| `mcp-data` | ⚠️ Сначала остановите | Содержит конфигурацию, которая может записываться при запуске |
+| `anythingllm-data` | ⚠️ Сначала остановите | Активная запись во время сеансов чата |
+
 ## Восстановление всех томов
 
 **Внимание:** Восстановление перезаписывает все существующие данные в целевых томах, включая API-ключи. Клиентам, использующим старые ключи, потребуется обновление.
@@ -197,3 +236,16 @@ docker compose up -d
 - **Кэш моделей** (`embeddings-data`, `whisper-data`, `whisper-live-data`, `kokoro-data`, `docling-data`) загружается автоматически при первом запуске. Если пропускная способность не является проблемой, резервное копирование можно пропустить — они будут загружены повторно.
 - **Критические тома**, которые всегда следует копировать: `ollama-data` (если есть пользовательские модели), `litellm-data`, `litellm-db`, `mcp-data` (содержат API-ключи и конфигурацию), а также `anythingllm-data` (история чатов и рабочие пространства).
 - Резервные копии — это стандартные архивы `.tar.gz`. Просмотреть содержимое можно командой: `tar tzf backups/ollama-data.tar.gz`
+
+### Тома по стекам
+
+| Стек | Используемые тома |
+|---|---|
+| chat-only | `ollama-data`, `litellm-data`, `litellm-db`, `ollama-shared` |
+| chat-ui | `ollama-data`, `litellm-data`, `litellm-db`, `anythingllm-data`, `ollama-shared`, `litellm-shared` |
+| voice-pipeline | `ollama-data`, `litellm-data`, `litellm-db`, `whisper-data`, `kokoro-data`, `ollama-shared` |
+| voice-chat | `ollama-data`, `litellm-data`, `litellm-db`, `anythingllm-data`, `whisper-data`, `kokoro-data`, `ollama-shared`, `litellm-shared` |
+| rag-pipeline | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `ollama-shared` |
+| rag-pipeline-full | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `docling-data`, `ollama-shared` |
+| code-assistant | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `mcp-data`, `ollama-shared`, `mcp-shared` |
+| ai-tools | `ollama-data`, `litellm-data`, `litellm-db`, `mcp-data`, `ollama-shared`, `mcp-shared` |

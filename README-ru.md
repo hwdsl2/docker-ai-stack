@@ -62,6 +62,11 @@ graph LR
     U -->|загружает| D
 ```
 
+**Примечания:**
+
+- Порт Ollama (`11434`) и порт MCP Gateway (`3000`) доступны только внутри сети Docker и не открыты на хосте по умолчанию. Доступ к LLM осуществляется через LiteLLM на порту `4000`.
+- Kokoro (TTS) и Docling (парсинг документов) закомментированы по умолчанию в `docker-compose.yml` для снижения потребления памяти. Раскомментируйте их для включения.
+
 ## Быстрый старт
 
 **Требования:**
@@ -225,6 +230,13 @@ docker run -d --name whisper --restart always \
     -p 127.0.0.1:9000:9000 \
     -v whisper-data:/var/lib/whisper \
     hwdsl2/whisper-server
+
+# WhisperLive (real-time STT)
+docker run -d --name whisper-live --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9090:9090 \
+    -v whisper-live-data:/var/lib/whisper-live \
+    hwdsl2/whisper-live-server
 
 # AnythingLLM (чат-интерфейс)
 docker run -d --name anythingllm --restart always \

@@ -84,6 +84,45 @@ docker run --rm \
 
 如果您运行的是轻量级技术栈（如 chat-only），则只存在相关的卷。上述备份循环会自动跳过不存在的卷。
 
+### 热备份（无停机）PostgreSQL
+
+如果不能停机，可以在服务运行时使用 `pg_dump` 备份 PostgreSQL 数据库：
+
+```bash
+docker exec litellm-db pg_dump -U litellm litellm | gzip > backups/litellm-db.sql.gz
+```
+
+从 SQL 转储恢复：
+
+```bash
+# 仅启动数据库容器
+docker compose up -d litellm-db
+sleep 5
+
+# 删除并重建数据库，然后恢复
+docker exec litellm-db dropdb -U litellm litellm --if-exists
+docker exec litellm-db createdb -U litellm litellm
+gunzip -c backups/litellm-db.sql.gz | docker exec -i litellm-db psql -U litellm litellm
+
+# 启动其余服务
+docker compose up -d
+```
+
+### 哪些卷需要停机？
+
+| 卷 | 可以热备份？ | 备注 |
+|---|---|---|
+| `litellm-db` | ✅ 是（使用 `pg_dump`） | PostgreSQL 支持一致性热转储 |
+| `embeddings-data` | ✅ 是 | 初始模型下载后为只读 |
+| `whisper-data` | ✅ 是 | 初始模型下载后为只读 |
+| `whisper-live-data` | ✅ 是 | 初始模型下载后为只读 |
+| `kokoro-data` | ✅ 是 | 初始模型下载后为只读 |
+| `docling-data` | ✅ 是 | 初始模型下载后为只读 |
+| `ollama-data` | ⚠️ 先停止 | 模型拉取时有写入；无拉取进行中则安全 |
+| `litellm-data` | ⚠️ 先停止 | 包含启动时可能写入的配置 |
+| `mcp-data` | ⚠️ 先停止 | 包含启动时可能写入的配置 |
+| `anythingllm-data` | ⚠️ 先停止 | 聊天会话期间有活跃写入 |
+
 ## 恢复所有卷
 
 **警告：** 恢复操作会覆盖目标卷中的所有现有数据，包括 API 密钥。使用旧密钥的客户端需要更新。
@@ -197,3 +236,16 @@ docker compose up -d
 - **模型缓存**（`embeddings-data`、`whisper-data`、`whisper-live-data`、`kokoro-data`、`docling-data`）在首次启动时自动下载。如果带宽不是问题，可以跳过备份 — 它们会被重新下载。
 - **关键卷**，应始终备份：`ollama-data`（如有自定义模型）、`litellm-data`、`litellm-db`、`mcp-data`（包含 API 密钥和配置）以及 `anythingllm-data`（聊天记录和工作区）。
 - 备份文件是标准的 `.tar.gz` 压缩包。可以使用以下命令查看内容：`tar tzf backups/ollama-data.tar.gz`
+
+### 各堆栈使用的卷
+
+| 堆栈 | 使用的卷 |
+|---|---|
+| chat-only | `ollama-data`, `litellm-data`, `litellm-db`, `ollama-shared` |
+| chat-ui | `ollama-data`, `litellm-data`, `litellm-db`, `anythingllm-data`, `ollama-shared`, `litellm-shared` |
+| voice-pipeline | `ollama-data`, `litellm-data`, `litellm-db`, `whisper-data`, `kokoro-data`, `ollama-shared` |
+| voice-chat | `ollama-data`, `litellm-data`, `litellm-db`, `anythingllm-data`, `whisper-data`, `kokoro-data`, `ollama-shared`, `litellm-shared` |
+| rag-pipeline | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `ollama-shared` |
+| rag-pipeline-full | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `docling-data`, `ollama-shared` |
+| code-assistant | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `mcp-data`, `ollama-shared`, `mcp-shared` |
+| ai-tools | `ollama-data`, `litellm-data`, `litellm-db`, `mcp-data`, `ollama-shared`, `mcp-shared` |

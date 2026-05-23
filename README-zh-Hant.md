@@ -21,7 +21,7 @@
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh-Hant.md)** | 執行本機大型語言模型（llama3、qwen、mistral 等） | `11434` |
 | **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | 基於 Web 的聊天介面 — 無需登入即可立即使用 | `3001` |
-| **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)** | AI 閘道 — 將請求路由至 Ollama、OpenAI、Anthropic 及 100+ 提供商 | `4000` |
+| **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)** | AI 閘道（含管理介面）— 將請求路由至 Ollama 及 100+ 提供商 | `4000` |
 | **[Embeddings](https://github.com/hwdsl2/docker-embeddings/blob/main/README-zh-Hant.md)** | 將文字轉換為向量，用於語意搜尋和 RAG | `8000` |
 | **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh-Hant.md)** | 將語音轉錄為文字 | `9000` |
 | **[WhisperLive（即時語音轉文字）](https://github.com/hwdsl2/docker-whisper-live/blob/main/README-zh-Hant.md)** | 透過 WebSocket 即時語音轉文字 | `9090` |
@@ -61,6 +61,11 @@ graph LR
     U -->|說話| A
     U -->|上傳| D
 ```
+
+**注意：**
+
+- Ollama 的連接埠（`11434`）和 MCP Gateway 的連接埠（`3000`）僅在 Docker 網路內部可用，預設不暴露給主機。請透過 LiteLLM 的連接埠 `4000` 存取您的 LLM。
+- Kokoro（TTS）和 Docling（文件解析）在 `docker-compose.yml` 中預設被註解掉，以減少記憶體使用。取消註解即可啟用。
 
 ## 快速開始
 
@@ -225,6 +230,13 @@ docker run -d --name whisper --restart always \
     -p 127.0.0.1:9000:9000 \
     -v whisper-data:/var/lib/whisper \
     hwdsl2/whisper-server
+
+# WhisperLive (real-time STT)
+docker run -d --name whisper-live --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9090:9090 \
+    -v whisper-live-data:/var/lib/whisper-live \
+    hwdsl2/whisper-live-server
 
 # AnythingLLM (聊天介面)
 docker run -d --name anythingllm --restart always \

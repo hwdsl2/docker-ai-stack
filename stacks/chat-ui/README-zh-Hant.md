@@ -4,7 +4,7 @@
 
 本機 ChatGPT 般的體驗 — 基於本機 LLM 和 OpenAI 相容 API 閘道的 Web 聊天介面。
 
-**服務：** Ollama (LLM) + LiteLLM (閘道) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (聊天介面)
+**服務：** Ollama (LLM) + LiteLLM (閘道) + [AnythingLLM](https://github.com/mintplex-labs/anything-llm) (聊天介面)
 
 **記憶體：** ~5 GB RAM（使用 3B 模型）
 
@@ -23,7 +23,7 @@ graph LR
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh-Hant.md)** | 執行本機 LLM 模型（llama3、qwen、mistral 等） | `11434` |
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)** | 帶管理介面的 AI 閘道 — 將請求路由至 Ollama 及 100+ 供應商 | `4000` |
-| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | 基於 Web 的聊天介面，支援工作區、RAG 和智慧代理 | `3001` |
+| **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | 基於 Web 的聊天介面，支援工作區、RAG 和智慧代理 | `3001` |
 
 ## 快速開始
 
@@ -198,6 +198,10 @@ server {
 
 **重要提示：** AnythingLLM 包含內建的使用者驗證系統——將服務暴露到網際網路時，請在首次設定時設定強密碼。
 
+## 備份和恢復
+
+有關備份/恢復說明，請參閱[備份和恢復](../../docs/backup-restore-zh-Hant.md)指南。
+
 ## 更新映像
 
 將所有服務更新到最新版本：
@@ -207,7 +211,7 @@ docker compose pull
 docker compose up -d
 ```
 
-您的資料保存在 Docker 卷中。
+您的資料保存在 Docker 卷中。 **升級前務必先[備份](../../docs/backup-restore-zh-Hant.md)。**
 
 ## 範例
 

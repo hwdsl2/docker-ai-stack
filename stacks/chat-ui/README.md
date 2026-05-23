@@ -4,7 +4,7 @@
 
 A local ChatGPT-like experience — web-based chat UI powered by a local LLM with an OpenAI-compatible API gateway.
 
-**Services:** Ollama (LLM) + LiteLLM (gateway) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (chat UI)
+**Services:** Ollama (LLM) + LiteLLM (gateway) + [AnythingLLM](https://github.com/mintplex-labs/anything-llm) (chat UI)
 
 **Memory:** ~5 GB RAM (with a 3B model)
 
@@ -23,7 +23,7 @@ graph LR
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama)** | Runs local LLM models (llama3, qwen, mistral, etc.) | `11434` |
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI gateway with Admin UI — routes requests to Ollama and 100+ providers | `4000` |
-| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | Web-based chat UI with workspaces, RAG, and agent support | `3001` |
+| **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | Web-based chat UI with workspaces, RAG, and agent support | `3001` |
 
 ## Quick start
 
@@ -198,6 +198,10 @@ server {
 
 **Important:** AnythingLLM includes its own user authentication system — set a strong password on first setup when exposing the service to the internet.
 
+## Backup and restore
+
+For backup/restore instructions, see the [Backup and Restore](../../docs/backup-restore.md) guide.
+
 ## Update images
 
 To update all services to the latest versions:
@@ -207,7 +211,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Your data is preserved in the Docker volumes.
+Your data is preserved in the Docker volumes. **Always [back up](../../docs/backup-restore.md) before upgrading.**
 
 ## Example
 

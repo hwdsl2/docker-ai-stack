@@ -4,7 +4,7 @@
 
 Веб-интерфейс чата с голосовым вводом (речь в текст) и голосовым выводом (текст в речь) — полноценный локальный AI-ассистент.
 
-**Сервисы:** Ollama (LLM) + LiteLLM (шлюз) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (чат-интерфейс) + Whisper (STT) + Kokoro (TTS)
+**Сервисы:** Ollama (LLM) + LiteLLM (шлюз) + [AnythingLLM](https://github.com/mintplex-labs/anything-llm) (чат-интерфейс) + Whisper (STT) + Kokoro (TTS)
 
 **Память:** ~6.5 ГБ RAM (с моделью 3B)
 
@@ -27,7 +27,7 @@ graph LR
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-ru.md)** | Запускает локальные LLM-модели (llama3, qwen, mistral и др.) | `11434` |
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md)** | AI-шлюз с панелью администратора — маршрутизирует запросы к Ollama и 100+ провайдерам | `4000` |
-| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | Веб-интерфейс чата с рабочими пространствами, RAG и поддержкой агентов | `3001` |
+| **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | Веб-интерфейс чата с рабочими пространствами, RAG и поддержкой агентов | `3001` |
 | **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md)** | Транскрибирует аудио в текст | `9000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-ru.md)** | Преобразует текст в естественную речь | `8880` |
 
@@ -218,6 +218,10 @@ server {
 
 **Важно:** AnythingLLM включает собственную систему аутентификации — установите надёжный пароль при первой настройке, если сервис доступен из интернета.
 
+## Резервное копирование и восстановление
+
+Инструкции по резервному копированию и восстановлению см. в руководстве [Резервное копирование и восстановление](../../docs/backup-restore-ru.md).
+
 ## Обновление образов
 
 Обновление всех сервисов до последних версий:
@@ -227,7 +231,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Ваши данные сохраняются в Docker-томах.
+Ваши данные сохраняются в Docker-томах. **Всегда делайте [резервную копию](../../docs/backup-restore-ru.md) перед обновлением.**
 
 ## Пример голосового конвейера
 

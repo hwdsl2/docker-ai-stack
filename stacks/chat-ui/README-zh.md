@@ -4,7 +4,7 @@
 
 本地 ChatGPT 般的体验 — 基于本地 LLM 和 OpenAI 兼容 API 网关的 Web 聊天界面。
 
-**服务：** Ollama (LLM) + LiteLLM (网关) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (聊天界面)
+**服务：** Ollama (LLM) + LiteLLM (网关) + [AnythingLLM](https://github.com/mintplex-labs/anything-llm) (聊天界面)
 
 **内存：** ~5 GB RAM（使用 3B 模型）
 
@@ -23,7 +23,7 @@ graph LR
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh.md)** | 运行本地 LLM 模型（llama3、qwen、mistral 等） | `11434` |
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)** | 带管理界面的 AI 网关 — 将请求路由至 Ollama 及 100+ 供应商 | `4000` |
-| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | 基于 Web 的聊天界面，支持工作区、RAG 和智能体 | `3001` |
+| **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | 基于 Web 的聊天界面，支持工作区、RAG 和智能体 | `3001` |
 
 ## 快速开始
 
@@ -198,6 +198,10 @@ server {
 
 **重要提示：** AnythingLLM 包含内置的用户认证系统——将服务暴露到互联网时，请在首次设置时设置强密码。
 
+## 备份和恢复
+
+有关备份/恢复说明，请参阅[备份和恢复](../../docs/backup-restore-zh.md)指南。
+
 ## 更新镜像
 
 将所有服务更新到最新版本：
@@ -207,7 +211,7 @@ docker compose pull
 docker compose up -d
 ```
 
-您的数据保存在 Docker 卷中。
+您的数据保存在 Docker 卷中。 **升级前务必先[备份](../../docs/backup-restore-zh.md)。**
 
 ## 示例
 

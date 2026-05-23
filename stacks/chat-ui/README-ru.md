@@ -4,7 +4,7 @@
 
 Локальный аналог ChatGPT — веб-интерфейс для чата на основе локальной LLM с OpenAI-совместимым API-шлюзом.
 
-**Сервисы:** Ollama (LLM) + LiteLLM (шлюз) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (чат-интерфейс)
+**Сервисы:** Ollama (LLM) + LiteLLM (шлюз) + [AnythingLLM](https://github.com/mintplex-labs/anything-llm) (чат-интерфейс)
 
 **Память:** ~5 ГБ RAM (с моделью 3B)
 
@@ -23,7 +23,7 @@ graph LR
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-ru.md)** | Запуск локальных LLM-моделей (llama3, qwen, mistral и др.) | `11434` |
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md)** | AI-шлюз с панелью администратора — маршрутизация запросов к Ollama и 100+ провайдерам | `4000` |
-| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | Веб-интерфейс для чата с рабочими пространствами, RAG и агентами | `3001` |
+| **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | Веб-интерфейс для чата с рабочими пространствами, RAG и агентами | `3001` |
 
 ## Быстрый старт
 
@@ -198,6 +198,10 @@ server {
 
 **Важно:** AnythingLLM включает встроенную систему аутентификации пользователей — при открытии сервиса в интернет установите надёжный пароль при первоначальной настройке.
 
+## Резервное копирование и восстановление
+
+Инструкции по резервному копированию и восстановлению см. в руководстве [Резервное копирование и восстановление](../../docs/backup-restore-ru.md).
+
 ## Обновление образов
 
 Обновление всех сервисов до последних версий:
@@ -207,7 +211,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Ваши данные сохраняются в томах Docker.
+Ваши данные сохраняются в томах Docker. **Всегда делайте [резервную копию](../../docs/backup-restore-ru.md) перед обновлением.**
 
 ## Пример
 

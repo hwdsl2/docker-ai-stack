@@ -29,6 +29,8 @@ graph LR
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm)** | AI gateway with Admin UI — routes requests to Ollama and 100+ providers | `4000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro)** | Converts text to natural-sounding speech | `8880` |
 
+**Note:** WhisperLive (real-time STT) is commented out by default in `docker-compose.yml`. Uncomment it to enable real-time transcription over WebSocket.
+
 ## Quick start
 
 ```bash
@@ -103,6 +105,13 @@ docker run -d --name kokoro --restart always \
     -p 127.0.0.1:8880:8880 \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
+
+# WhisperLive (real-time STT)
+docker run -d --name whisper-live --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9090:9090 \
+    -v whisper-live-data:/var/lib/whisper-live \
+    hwdsl2/whisper-live-server
 ```
 
 **Note:** The shared network allows services to reach each other by container name (e.g., LiteLLM connects to Ollama via `http://ollama:11434`).
@@ -142,12 +151,17 @@ Each service can be configured with an optional env file. Copy the example env f
 | LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm) |
 | Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper) |
 | Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro) |
+| WhisperLive | `whisper-live.env` | [docker-whisper-live](https://github.com/hwdsl2/docker-whisper-live) |
 
 For detailed configuration options, API reference, and model management, see the documentation in each service's repository.
 
 ## Internet-facing deployments
 
 By default, all services listen over plain HTTP. For internet-facing deployments, place a reverse proxy (e.g., [Caddy](https://caddyserver.com/), Nginx, or Traefik) in front of the stack to provide HTTPS. Each service repository includes a detailed [reverse proxy guide](https://github.com/hwdsl2/docker-litellm#using-a-reverse-proxy) with Caddy and nginx examples.
+
+## Backup and restore
+
+For backup/restore instructions, see the [Backup and Restore](../../docs/backup-restore.md) guide.
 
 ## Update images
 
@@ -158,7 +172,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Your data is preserved in the Docker volumes.
+Your data is preserved in the Docker volumes. **Always [back up](../../docs/backup-restore.md) before upgrading.**
 
 ## Example
 

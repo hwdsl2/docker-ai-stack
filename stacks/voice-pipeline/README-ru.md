@@ -29,6 +29,8 @@ graph LR
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md)** | AI-шлюз с панелью администратора — маршрутизирует запросы к Ollama и 100+ провайдерам | `4000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-ru.md)** | Преобразует текст в естественную речь | `8880` |
 
+**Примечание:** WhisperLive (STT в реальном времени) закомментирован по умолчанию в `docker-compose.yml`. Раскомментируйте его для включения транскрипции в реальном времени через WebSocket.
+
 ## Быстрый старт
 
 ```bash
@@ -103,6 +105,13 @@ docker run -d --name kokoro --restart always \
     -p 127.0.0.1:8880:8880 \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
+
+# WhisperLive (real-time STT)
+docker run -d --name whisper-live --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9090:9090 \
+    -v whisper-live-data:/var/lib/whisper-live \
+    hwdsl2/whisper-live-server
 ```
 
 **Примечание:** Общая сеть позволяет сервисам обращаться друг к другу по имени контейнера (например, LiteLLM подключается к Ollama через `http://ollama:11434`).
@@ -142,12 +151,17 @@ docker exec ollama ollama_manage --pull llama3.2:3b
 | LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md) |
 | Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md) |
 | Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro/blob/main/README-ru.md) |
+| WhisperLive | `whisper-live.env` | [docker-whisper-live](https://github.com/hwdsl2/docker-whisper-live) |
 
 Подробные параметры настройки, справочник API и управление моделями описаны в документации каждого сервиса.
 
 ## Развёртывание с доступом из интернета
 
 По умолчанию все сервисы слушают по незашифрованному HTTP. Для развёртываний с доступом из интернета установите обратный прокси (например, [Caddy](https://caddyserver.com/), Nginx или Traefik) перед стеком для обеспечения HTTPS. Каждый репозиторий сервиса содержит подробное [руководство по обратному прокси](https://github.com/hwdsl2/docker-litellm/blob/main/README-ru.md#использование-обратного-прокси) с примерами для Caddy и nginx.
+
+## Резервное копирование и восстановление
+
+Инструкции по резервному копированию и восстановлению см. в руководстве [Резервное копирование и восстановление](../../docs/backup-restore-ru.md).
 
 ## Обновление образов
 
@@ -158,7 +172,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Ваши данные сохраняются в Docker-томах.
+Ваши данные сохраняются в Docker-томах. **Всегда делайте [резервную копию](../../docs/backup-restore-ru.md) перед обновлением.**
 
 ## Пример
 

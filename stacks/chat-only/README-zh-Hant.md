@@ -127,6 +127,10 @@ docker exec ollama ollama_manage --pull llama3.2:3b
 
 預設情況下，所有服務透過純 HTTP 監聽。對於面向網際網路的部署，請在技術堆疊前面放置反向代理（例如 [Caddy](https://caddyserver.com/)、Nginx 或 Traefik）以提供 HTTPS。每個服務儲存庫都包含詳細的[反向代理指南](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md#使用反向代理)，含 Caddy 和 nginx 範例。
 
+## 備份和恢復
+
+有關備份/恢復說明，請參閱[備份和恢復](../../docs/backup-restore-zh-Hant.md)指南。
+
 ## 更新映像檔
 
 將所有服務更新到最新版本：
@@ -136,7 +140,7 @@ docker compose pull
 docker compose up -d
 ```
 
-您的資料保存在 Docker 磁碟區中。
+您的資料保存在 Docker 磁碟區中。 **升級前務必先[備份](../../docs/backup-restore-zh-Hant.md)。**
 
 ## 範例
 

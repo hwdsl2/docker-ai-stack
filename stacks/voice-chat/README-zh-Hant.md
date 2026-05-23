@@ -4,7 +4,7 @@
 
 基於網頁的聊天介面，搭配語音輸入（語音轉文字）和語音輸出（文字轉語音）— 完整的本機 AI 個人助手。
 
-**服務：** Ollama (LLM) + LiteLLM (閘道) + [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) (聊天介面) + Whisper (STT) + Kokoro (TTS)
+**服務：** Ollama (LLM) + LiteLLM (閘道) + [AnythingLLM](https://github.com/mintplex-labs/anything-llm) (聊天介面) + Whisper (STT) + Kokoro (TTS)
 
 **記憶體：** ~6.5 GB RAM（使用 3B 模型）
 
@@ -27,7 +27,7 @@ graph LR
 |---|---|---|
 | **[Ollama (LLM)](https://github.com/hwdsl2/docker-ollama/blob/main/README-zh-Hant.md)** | 執行本機 LLM 模型（llama3、qwen、mistral 等） | `11434` |
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)** | 帶管理介面的 AI 閘道 — 將請求路由至 Ollama 及 100+ 供應商 | `4000` |
-| **[AnythingLLM](https://github.com/Mintplex-Labs/anything-llm)** | 基於網頁的聊天介面，支援工作區、RAG 和代理 | `3001` |
+| **[AnythingLLM](https://github.com/mintplex-labs/anything-llm)** | 基於網頁的聊天介面，支援工作區、RAG 和代理 | `3001` |
 | **[Whisper (STT)](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh-Hant.md)** | 將語音音訊轉錄為文字 | `9000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh-Hant.md)** | 將文字轉換為自然語音 | `8880` |
 
@@ -218,6 +218,10 @@ server {
 
 **重要：** AnythingLLM 包含自己的使用者認證系統 — 在將服務暴露到網際網路時請在首次設定時設定強密碼。
 
+## 備份和恢復
+
+有關備份/恢復說明，請參閱[備份和恢復](../../docs/backup-restore-zh-Hant.md)指南。
+
 ## 更新映像檔
 
 將所有服務更新到最新版本：
@@ -227,7 +231,7 @@ docker compose pull
 docker compose up -d
 ```
 
-您的資料保存在 Docker 磁碟區中。
+您的資料保存在 Docker 磁碟區中。 **升級前務必先[備份](../../docs/backup-restore-zh-Hant.md)。**
 
 ## 語音管道範例
 

@@ -29,6 +29,8 @@ graph LR
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md)** | 帶管理介面的 AI 閘道 — 將請求路由至 Ollama 及 100+ 供應商 | `4000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh-Hant.md)** | 將文字轉換為自然語音 | `8880` |
 
+**注意：** WhisperLive（即時 STT）在 `docker-compose.yml` 中預設被註解掉。取消註解即可啟用透過 WebSocket 的即時轉錄。
+
 ## 快速開始
 
 ```bash
@@ -103,6 +105,13 @@ docker run -d --name kokoro --restart always \
     -p 127.0.0.1:8880:8880 \
     -v kokoro-data:/var/lib/kokoro \
     hwdsl2/kokoro-server
+
+# WhisperLive (real-time STT)
+docker run -d --name whisper-live --restart always \
+    --network ai-stack \
+    -p 127.0.0.1:9090:9090 \
+    -v whisper-live-data:/var/lib/whisper-live \
+    hwdsl2/whisper-live-server
 ```
 
 **注：** 共享網路允許服務透過容器名稱互相存取（例如 LiteLLM 透過 `http://ollama:11434` 連接 Ollama）。
@@ -142,12 +151,17 @@ docker exec ollama ollama_manage --pull llama3.2:3b
 | LiteLLM | `litellm.env` | [docker-litellm](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md) |
 | Whisper | `whisper.env` | [docker-whisper](https://github.com/hwdsl2/docker-whisper/blob/main/README-zh-Hant.md) |
 | Kokoro | `kokoro.env` | [docker-kokoro](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh-Hant.md) |
+| WhisperLive | `whisper-live.env` | [docker-whisper-live](https://github.com/hwdsl2/docker-whisper-live) |
 
 有關詳細設定選項、API 參考和模型管理，請參閱各服務儲存庫的文件。
 
 ## 面向網際網路的部署
 
 預設情況下，所有服務透過純 HTTP 監聽。對於面向網際網路的部署，請在技術堆疊前面放置反向代理（例如 [Caddy](https://caddyserver.com/)、Nginx 或 Traefik）以提供 HTTPS。每個服務儲存庫都包含詳細的[反向代理指南](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh-Hant.md#使用反向代理)，含 Caddy 和 nginx 範例。
+
+## 備份和恢復
+
+有關備份/恢復說明，請參閱[備份和恢復](../../docs/backup-restore-zh-Hant.md)指南。
 
 ## 更新映像檔
 
@@ -158,7 +172,7 @@ docker compose pull
 docker compose up -d
 ```
 
-您的資料保存在 Docker 磁碟區中。
+您的資料保存在 Docker 磁碟區中。 **升級前務必先[備份](../../docs/backup-restore-zh-Hant.md)。**
 
 ## 範例
 
