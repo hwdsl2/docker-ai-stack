@@ -16,7 +16,7 @@ Parse documents, embed them for semantic search, and answer questions with a loc
 graph LR
     D["📄 Documents<br/>(PDF, DOCX, etc.)"] -->|parse| DC["Docling<br/>(document → text)"]
     DC -->|embed| E["Embeddings<br/>(text → vectors)"]
-    E -->|store| VDB["Vector DB<br/>(Qdrant, Chroma)"]
+    E -->|store| VDB["External Vector DB<br/>(Qdrant, Chroma)"]
     VDB -->|context| L["LiteLLM<br/>(AI gateway)"]
     L -->|routes to| O["Ollama<br/>(local LLM)"]
 ```

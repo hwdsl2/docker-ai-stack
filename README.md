@@ -4,19 +4,31 @@
 
 [![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-ai-stack.svg)](https://hub.docker.com/u/hwdsl2) &nbsp;[![License: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-Deploy a complete, self-hosted AI stack on your own server with a single command.
+<p align="center">
+  <img src="docs/images/docker-ai-stack-overview.png"
+       alt="Docker AI Stack: deploy a complete self-hosted AI stack with one command"
+       width="100%">
+</p>
+
+Includes Ollama, LiteLLM, AnythingLLM, Whisper, MCP Gateway, Embeddings, Docling, and Kokoro — fully configured and ready to run with Docker Compose.
 
 - Zero-config: all services auto-configure on first start
 - Secure: Ollama, LiteLLM, and MCP Gateway generate API keys automatically
-- Private: audio, embeddings, and LLM inference all run locally — no data sent to third parties
+- Private: runs locally by default with optional external provider support via LiteLLM
 - Optional auth: Whisper, WhisperLive, Kokoro, Embeddings, and Docling work without API keys by default (set keys via env files for public deployments)
 - [Lightweight stacks](#lightweight-stacks) for lower memory requirements (as low as ~4.5 GB)
 - GPU acceleration via NVIDIA CUDA
 - Multi-arch: `linux/amd64`, `linux/arm64`
 
-**Note:** When using LiteLLM with external providers (e.g., OpenAI, Anthropic), your data will be sent to those providers.
+## Community
 
-**Services included:**
+- :star: Star the repository if Docker AI Stack is useful to you
+- :mailbox: [Subscribe for project updates](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai) (1–2 emails/month) — get free AI and VPN deployment guides (PDF)
+- :speech_balloon: Join the [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) community for discussions and showcases
+
+Docker AI Stack is maintained by the author of [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) (27k+ stars).
+
+## Included Services
 
 | Service | Role | Default port |
 |---|---|---|
@@ -29,45 +41,6 @@ Deploy a complete, self-hosted AI stack on your own server with a single command
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro)** | Converts text to natural-sounding speech | `8880` |
 | **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway)** | Provides MCP tools (filesystem, fetch, GitHub, search, databases) to AI clients | `3000` |
 | **[Docling](https://github.com/hwdsl2/docker-docling)** | Converts documents (PDF, DOCX, etc.) to structured text/Markdown | `5001` |
-
-**Also available:**
-
-- VPN: [WireGuard](https://github.com/hwdsl2/docker-wireguard), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale)
-
-## Community
-
-- [Subscribe for project updates](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai) (1–2 emails/month) — get free AI and VPN deployment guides (PDF)
-- Join the [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) community for discussions and showcases
-
-## Architecture
-
-```mermaid
-graph LR
-    A["🎤 Audio input"] -->|transcribe| W["Whisper<br/>(speech-to-text)"]
-    D["📄 Documents"] -->|parse| DC["Docling<br/>(document → text)"]
-    DC -->|embed| E["Embeddings<br/>(text → vectors)"]
-    E -->|store| VDB["Vector DB<br/>(Qdrant, Chroma)"]
-    W -->|query| E
-    VDB -->|context| L["LiteLLM<br/>(AI gateway)"]
-    W -->|text| L
-    L -->|routes to| O["Ollama<br/>(local LLM)"]
-    L -->|response| T["Kokoro TTS<br/>(text-to-speech)"]
-    T --> B["🔊 Audio output"]
-    C["🤖 AI client<br/>(Cline, Claude, etc.)"] -->|MCP tools| M["MCP Gateway<br/>(MCP endpoint)"]
-    C -->|chat| L
-    L -->|MCP protocol| M
-    U["👤 User"] -->|chat| AN["AnythingLLM<br/>(chat UI)"]
-    AN -->|LLM requests| L
-    AN -->|MCP tools| M
-    U -->|use| C
-    U -->|speak| A
-    U -->|upload| D
-```
-
-**Notes:**
-
-- Ollama's port (`11434`) and MCP Gateway's port (`3000`) are internal to the Docker network and not exposed to the host by default. Access your LLM through LiteLLM on port `4000`.
-- Kokoro (TTS) and Docling (document parsing) are commented out by default in `docker-compose.yml` to reduce memory usage. Uncomment them to enable.
 
 ## Quick start
 
@@ -171,6 +144,36 @@ git clone https://github.com/hwdsl2/docker-ai-stack
 cd docker-ai-stack/stacks/chat-ui  # or voice-pipeline, voice-chat, rag-pipeline, rag-pipeline-full, code-assistant, ai-tools, chat-only
 docker compose up -d
 ```
+
+## Architecture
+
+```mermaid
+graph LR
+    A["🎤 Audio input"] -->|transcribe| W["Whisper<br/>(speech-to-text)"]
+    D["📄 Documents"] -->|parse| DC["Docling<br/>(document → text)"]
+    DC -->|embed| E["Embeddings<br/>(text → vectors)"]
+    E -->|store| VDB["External Vector DB<br/>(Qdrant, Chroma)"]
+    W -->|query| E
+    VDB -->|context| L["LiteLLM<br/>(AI gateway)"]
+    W -->|text| L
+    L -->|routes to| O["Ollama<br/>(local LLM)"]
+    L -->|response| T["Kokoro TTS<br/>(text-to-speech)"]
+    T --> B["🔊 Audio output"]
+    C["🤖 AI client<br/>(Cline, Claude, etc.)"] -->|MCP tools| M["MCP Gateway<br/>(MCP endpoint)"]
+    C -->|chat| L
+    L -->|MCP protocol| M
+    U["👤 User"] -->|chat| AN["AnythingLLM<br/>(chat UI)"]
+    AN -->|LLM requests| L
+    AN -->|MCP tools| M
+    U -->|use| C
+    U -->|speak| A
+    U -->|upload| D
+```
+
+**Notes:**
+
+- Ollama's port (`11434`) and MCP Gateway's port (`3000`) are internal to the Docker network and not exposed to the host by default. Access your LLM through LiteLLM on port `4000`.
+- Kokoro (TTS), Docling (document parsing), and WhisperLive (real-time STT) are disabled by default to reduce memory usage. Uncomment these services in `docker-compose.yml` to enable them.
 
 ## Running without Docker Compose
 

@@ -15,7 +15,7 @@
 ```mermaid
 graph LR
     D["📄 文档"] -->|嵌入| E["Embeddings<br/>(文本 → 向量)"]
-    E -->|存储| VDB["向量数据库<br/>(Qdrant, Chroma)"]
+    E -->|存储| VDB["外部向量数据库<br/>(Qdrant, Chroma)"]
     VDB -->|上下文| L["LiteLLM<br/>(AI 网关)"]
     L -->|路由至| O["Ollama<br/>(本地 LLM)"]
 ```

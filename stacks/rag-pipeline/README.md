@@ -15,7 +15,7 @@ Embed documents for semantic search and answer questions with a local LLM.
 ```mermaid
 graph LR
     D["📄 Documents"] -->|embed| E["Embeddings<br/>(text → vectors)"]
-    E -->|store| VDB["Vector DB<br/>(Qdrant, Chroma)"]
+    E -->|store| VDB["External Vector DB<br/>(Qdrant, Chroma)"]
     VDB -->|context| L["LiteLLM<br/>(AI gateway)"]
     L -->|routes to| O["Ollama<br/>(local LLM)"]
 ```

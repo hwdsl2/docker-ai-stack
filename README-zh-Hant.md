@@ -4,19 +4,31 @@
 
 [![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-ai-stack.svg)](https://hub.docker.com/u/hwdsl2) &nbsp;[![授權協議: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-一鍵在您自己的伺服器上部署完整的自託管 AI 技術堆疊。
+<p align="center">
+  <img src="docs/images/docker-ai-stack-overview.png"
+       alt="Docker AI Stack：一鍵部署完整的自託管 AI 技術堆疊"
+       width="100%">
+</p>
+
+包含 Ollama、LiteLLM、AnythingLLM、Whisper、MCP Gateway、Embeddings、Docling 和 Kokoro — 使用 Docker Compose 完整配置，開箱即用。
 
 - 零配置：所有服務在首次啟動時自動配置
 - 安全：Ollama、LiteLLM 和 MCP Gateway 自動產生 API 金鑰
-- 隱私：音訊、向量嵌入和大型語言模型推理均在本機執行 — 無資料發送給第三方
+- 隱私：預設在本機執行，可透過 LiteLLM 選擇性接入外部提供商
 - 可選驗證：Whisper、WhisperLive、Kokoro、Embeddings 和 Docling 預設無需 API 金鑰（對外網路部署時可透過 env 檔案設定金鑰）
 - 提供[輕量級技術堆疊](#輕量級技術堆疊)，降低記憶體需求（最低約 4.5 GB）
 - 支援 NVIDIA CUDA GPU 加速
 - 多架構：`linux/amd64`、`linux/arm64`
 
-**注：** 當使用 LiteLLM 連接外部提供商（如 OpenAI、Anthropic）時，您的資料將發送給這些提供商。
+## 社群
 
-**包含的服務：**
+- :star: 如果 Docker AI Stack 對您有幫助，請為儲存庫加星
+- :mailbox: [訂閱專案更新](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai-zh-hant)（每月 1–2 封郵件）——獲取免費的 AI 和 VPN 部署指南（PDF，英文）
+- :speech_balloon: 加入 [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) 社群，參與討論與專案展示
+
+Docker AI Stack 由 [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn)（27k+ 星標）的作者維護。
+
+## 包含的服務
 
 | 服務 | 用途 | 預設連接埠 |
 |---|---|---|
@@ -29,45 +41,6 @@
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh-Hant.md)** | 將文字轉換為自然語音 | `8880` |
 | **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway/blob/main/README-zh-Hant.md)** | 為 AI 用戶端提供 MCP 工具（檔案系統、網頁擷取、GitHub、搜尋、資料庫） | `3000` |
 | **[Docling](https://github.com/hwdsl2/docker-docling/blob/main/README-zh-Hant.md)** | 將文件（PDF、DOCX 等）轉換為結構化文字/Markdown | `5001` |
-
-**另提供：**
-
-- VPN：[WireGuard](https://github.com/hwdsl2/docker-wireguard)、[OpenVPN](https://github.com/hwdsl2/docker-openvpn)、[IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server)、[Headscale](https://github.com/hwdsl2/docker-headscale)
-
-## 社群
-
-- [訂閱專案更新](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai-zh-hant)（每月 1–2 封郵件）——獲取免費的 AI 和 VPN 部署指南（PDF，英文）
-- 加入 [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) 社群，參與討論與專案展示
-
-## 架構
-
-```mermaid
-graph LR
-    A["🎤 音訊輸入"] -->|轉錄| W["Whisper<br/>(語音轉文字)"]
-    D["📄 文件"] -->|解析| DC["Docling<br/>(文件 → 文字)"]
-    DC -->|嵌入| E["Embeddings<br/>(文字 → 向量)"]
-    E -->|儲存| VDB["向量資料庫<br/>(Qdrant, Chroma)"]
-    W -->|查詢| E
-    VDB -->|上下文| L["LiteLLM<br/>(AI 閘道)"]
-    W -->|文字| L
-    L -->|路由至| O["Ollama<br/>(本機 LLM)"]
-    L -->|回應| T["Kokoro TTS<br/>(文字轉語音)"]
-    T --> B["🔊 音訊輸出"]
-    C["🤖 AI 用戶端<br/>(Cline, Claude 等)"] -->|MCP 工具| M["MCP Gateway<br/>(MCP 端點)"]
-    C -->|對話| L
-    L -->|MCP 協定| M
-    U["👤 使用者"] -->|對話| AN["AnythingLLM<br/>(聊天介面)"]
-    AN -->|LLM 請求| L
-    AN -->|MCP 工具| M
-    U -->|使用| C
-    U -->|說話| A
-    U -->|上傳| D
-```
-
-**注意：**
-
-- Ollama 的連接埠（`11434`）和 MCP Gateway 的連接埠（`3000`）僅在 Docker 網路內部可用，預設不暴露給主機。請透過 LiteLLM 的連接埠 `4000` 存取您的 LLM。
-- Kokoro（TTS）和 Docling（文件解析）在 `docker-compose.yml` 中預設被註解掉，以減少記憶體使用。取消註解即可啟用。
 
 ## 快速開始
 
@@ -171,6 +144,36 @@ git clone https://github.com/hwdsl2/docker-ai-stack
 cd docker-ai-stack/stacks/chat-ui  # 或 voice-pipeline、voice-chat、rag-pipeline、rag-pipeline-full、code-assistant、ai-tools、chat-only
 docker compose up -d
 ```
+
+## 架構
+
+```mermaid
+graph LR
+    A["🎤 音訊輸入"] -->|轉錄| W["Whisper<br/>(語音轉文字)"]
+    D["📄 文件"] -->|解析| DC["Docling<br/>(文件 → 文字)"]
+    DC -->|嵌入| E["Embeddings<br/>(文字 → 向量)"]
+    E -->|儲存| VDB["外部向量資料庫<br/>(Qdrant, Chroma)"]
+    W -->|查詢| E
+    VDB -->|上下文| L["LiteLLM<br/>(AI 閘道)"]
+    W -->|文字| L
+    L -->|路由至| O["Ollama<br/>(本機 LLM)"]
+    L -->|回應| T["Kokoro TTS<br/>(文字轉語音)"]
+    T --> B["🔊 音訊輸出"]
+    C["🤖 AI 用戶端<br/>(Cline, Claude 等)"] -->|MCP 工具| M["MCP Gateway<br/>(MCP 端點)"]
+    C -->|對話| L
+    L -->|MCP 協定| M
+    U["👤 使用者"] -->|對話| AN["AnythingLLM<br/>(聊天介面)"]
+    AN -->|LLM 請求| L
+    AN -->|MCP 工具| M
+    U -->|使用| C
+    U -->|說話| A
+    U -->|上傳| D
+```
+
+**注：**
+
+- Ollama 的連接埠（`11434`）和 MCP Gateway 的連接埠（`3000`）僅在 Docker 網路內部可用，預設不暴露給主機。請透過 LiteLLM 的連接埠 `4000` 存取您的 LLM。
+- 為降低記憶體使用量，Kokoro（TTS）、Docling（文件解析）和 WhisperLive（即時語音轉文字）預設為停用狀態。如需啟用，請在 `docker-compose.yml` 中取消註解這些服務。
 
 ## 不使用 Docker Compose 執行
 
@@ -299,7 +302,7 @@ compose 檔案中已預設 `LITELLM_MCP_URL=http://mcp:3000/mcp` 和 `LITELLM_OL
 
 轉錄語音問題，透過 Ollama 取得本機 LLM 回應，然後轉換為語音：
 
-**注意：** Kokoro（TTS）預設已停用。如需使用此範例，請先取消 `docker-compose.yml` 中 `kokoro` 服務的註解，然後執行 `docker compose up -d`。
+**注：** Kokoro（TTS）預設已停用。如需使用此範例，請先取消 `docker-compose.yml` 中 `kokoro` 服務的註解，然後執行 `docker compose up -d`。
 
 **提示：** 需要範例音訊檔案？可以從 [Azure Samples](https://github.com/Azure-Samples/cognitive-services-speech-sdk) 儲存庫下載這個英語語音範例（WAV 格式，MIT 授權）：
 

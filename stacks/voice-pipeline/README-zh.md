@@ -31,7 +31,7 @@ graph LR
 | **[LiteLLM](https://github.com/hwdsl2/docker-litellm/blob/main/README-zh.md)** | 带管理界面的 AI 网关 — 将请求路由至 Ollama 及 100+ 供应商 | `4000` |
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-zh.md)** | 将文本转换为自然语音 | `8880` |
 
-**注意：** WhisperLive（实时 STT）在 `docker-compose.yml` 中默认被注释掉。取消注释即可启用通过 WebSocket 的实时转录。
+**注：** WhisperLive（实时 STT）在 `docker-compose.yml` 中默认被注释掉。取消注释即可启用通过 WebSocket 的实时转录。
 
 ## 快速开始
 

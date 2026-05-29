@@ -4,19 +4,31 @@
 
 [![Docker Compose AI Stack](docs/images/ai-stack.svg)](https://docs.docker.com/compose/) &nbsp;[![Docker Pulls](https://raw.githubusercontent.com/hwdsl2/badges/main/img/docker-pulls-ai-stack.svg)](https://hub.docker.com/u/hwdsl2) &nbsp;[![Лицензия: MIT](docs/images/license.svg)](https://opensource.org/licenses/MIT)
 
-Разверните полный self-hosted AI-стек на собственном сервере одной командой.
+<p align="center">
+  <img src="docs/images/docker-ai-stack-overview.png"
+       alt="Docker AI Stack: разверните полный self-hosted AI-стек одной командой"
+       width="100%">
+</p>
+
+Включает Ollama, LiteLLM, AnythingLLM, Whisper, MCP Gateway, Embeddings, Docling и Kokoro — полностью сконфигурирован и готов к запуску с Docker Compose.
 
 - Без настройки: все сервисы автоматически конфигурируются при первом запуске
 - Безопасность: Ollama, LiteLLM и MCP Gateway автоматически генерируют API-ключи
-- Приватность: аудио, эмбеддинги и LLM-инференс выполняются локально — данные не отправляются третьим лицам
+- Приватность: по умолчанию работает локально с опциональной поддержкой внешних провайдеров через LiteLLM
 - Опциональная авторизация: Whisper, WhisperLive, Kokoro, Embeddings и Docling работают без API-ключей по умолчанию (задайте ключи через env-файлы для публичных развёртываний)
 - [Облегчённые стеки](#облегчённые-стеки) с меньшими требованиями к памяти (от ~4.5 ГБ)
 - GPU-ускорение через NVIDIA CUDA
 - Мультиархитектурность: `linux/amd64`, `linux/arm64`
 
-**Примечание:** При использовании LiteLLM с внешними провайдерами (например, OpenAI, Anthropic) ваши данные будут отправляться этим провайдерам.
+## Сообщество
 
-**Включённые сервисы:**
+- :star: Поставьте звезду репозиторию, если Docker AI Stack вам полезен
+- :mailbox: [Подписаться на обновления проектов](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai-ru) (1–2 письма в месяц) — получить бесплатные руководства по развёртыванию AI и VPN (PDF, на английском)
+- :speech_balloon: Присоединяйтесь к сообществу [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) для обсуждений и демонстрации проектов
+
+Docker AI Stack поддерживается автором [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) (27k+ звёзд).
+
+## Включённые сервисы
 
 | Сервис | Назначение | Порт по умолчанию |
 |---|---|---|
@@ -29,45 +41,6 @@
 | **[Kokoro (TTS)](https://github.com/hwdsl2/docker-kokoro/blob/main/README-ru.md)** | Преобразование текста в естественную речь | `8880` |
 | **[MCP Gateway](https://github.com/hwdsl2/docker-mcp-gateway/blob/main/README-ru.md)** | Предоставление MCP-инструментов (файловая система, веб, GitHub, поиск, базы данных) AI-клиентам | `3000` |
 | **[Docling](https://github.com/hwdsl2/docker-docling/blob/main/README-ru.md)** | Конвертирует документы (PDF, DOCX и др.) в структурированный текст/Markdown | `5001` |
-
-**Также доступно:**
-
-- VPN: [WireGuard](https://github.com/hwdsl2/docker-wireguard), [OpenVPN](https://github.com/hwdsl2/docker-openvpn), [IPsec VPN](https://github.com/hwdsl2/docker-ipsec-vpn-server), [Headscale](https://github.com/hwdsl2/docker-headscale)
-
-## Сообщество
-
-- [Подписаться на обновления проектов](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai-ru) (1–2 письма в месяц) — получить бесплатные руководства по развёртыванию AI и VPN (PDF, на английском)
-- Присоединяйтесь к сообществу [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) для обсуждений и демонстрации проектов
-
-## Архитектура
-
-```mermaid
-graph LR
-    A["🎤 Аудиовход"] -->|транскрибация| W["Whisper<br/>(речь в текст)"]
-    D["📄 Документы"] -->|разбор| DC["Docling<br/>(документ → текст)"]
-    DC -->|эмбеддинг| E["Embeddings<br/>(текст → векторы)"]
-    E -->|хранение| VDB["Векторная БД<br/>(Qdrant, Chroma)"]
-    W -->|запрос| E
-    VDB -->|контекст| L["LiteLLM<br/>(AI-шлюз)"]
-    W -->|текст| L
-    L -->|маршрутизация| O["Ollama<br/>(локальная LLM)"]
-    L -->|ответ| T["Kokoro TTS<br/>(текст в речь)"]
-    T --> B["🔊 Аудиовыход"]
-    C["🤖 AI-клиент<br/>(Cline, Claude и др.)"] -->|MCP-инструменты| M["MCP Gateway<br/>(MCP-эндпоинт)"]
-    C -->|чат| L
-    L -->|MCP-протокол| M
-    U["👤 Пользователь"] -->|чат| AN["AnythingLLM<br/>(чат-интерфейс)"]
-    AN -->|запросы к LLM| L
-    AN -->|MCP-инструменты| M
-    U -->|использует| C
-    U -->|говорит| A
-    U -->|загружает| D
-```
-
-**Примечания:**
-
-- Порт Ollama (`11434`) и порт MCP Gateway (`3000`) доступны только внутри сети Docker и не открыты на хосте по умолчанию. Доступ к LLM осуществляется через LiteLLM на порту `4000`.
-- Kokoro (TTS) и Docling (парсинг документов) закомментированы по умолчанию в `docker-compose.yml` для снижения потребления памяти. Раскомментируйте их для включения.
 
 ## Быстрый старт
 
@@ -171,6 +144,36 @@ git clone https://github.com/hwdsl2/docker-ai-stack
 cd docker-ai-stack/stacks/chat-ui  # или voice-pipeline, voice-chat, rag-pipeline, rag-pipeline-full, code-assistant, ai-tools, chat-only
 docker compose up -d
 ```
+
+## Архитектура
+
+```mermaid
+graph LR
+    A["🎤 Аудиовход"] -->|транскрибация| W["Whisper<br/>(речь в текст)"]
+    D["📄 Документы"] -->|разбор| DC["Docling<br/>(документ → текст)"]
+    DC -->|эмбеддинг| E["Embeddings<br/>(текст → векторы)"]
+    E -->|хранение| VDB["Внешняя векторная база данных<br/>(Qdrant, Chroma)"]
+    W -->|запрос| E
+    VDB -->|контекст| L["LiteLLM<br/>(AI-шлюз)"]
+    W -->|текст| L
+    L -->|маршрутизация| O["Ollama<br/>(локальная LLM)"]
+    L -->|ответ| T["Kokoro TTS<br/>(текст в речь)"]
+    T --> B["🔊 Аудиовыход"]
+    C["🤖 AI-клиент<br/>(Cline, Claude и др.)"] -->|MCP-инструменты| M["MCP Gateway<br/>(MCP-эндпоинт)"]
+    C -->|чат| L
+    L -->|MCP-протокол| M
+    U["👤 Пользователь"] -->|чат| AN["AnythingLLM<br/>(чат-интерфейс)"]
+    AN -->|запросы к LLM| L
+    AN -->|MCP-инструменты| M
+    U -->|использует| C
+    U -->|говорит| A
+    U -->|загружает| D
+```
+
+**Примечания:**
+
+- Порт Ollama (`11434`) и порт MCP Gateway (`3000`) доступны только внутри сети Docker и не открыты на хосте по умолчанию. Доступ к LLM осуществляется через LiteLLM на порту `4000`.
+- Для снижения потребления памяти сервисы Kokoro (TTS), Docling (парсинг документов) и WhisperLive (распознавание речи в реальном времени) по умолчанию отключены. Чтобы включить их, раскомментируйте соответствующие сервисы в `docker-compose.yml`.
 
 ## Запуск без Docker Compose
 
