@@ -46,7 +46,7 @@ Store this file securely — it contains credentials.
 Stop the stack first to ensure data consistency:
 
 ```bash
-# Stop services
+# Stop and remove containers (data is preserved in Docker volumes)
 docker compose down
 
 # Create backup directory
@@ -72,6 +72,7 @@ ls -lh backups/*.tar.gz
 ### Back up a single volume
 
 ```bash
+# Stop and remove containers (data is preserved in Docker volumes)
 docker compose down
 
 docker run --rm \
@@ -128,7 +129,7 @@ docker compose up -d
 **Warning:** Restoring overwrites all existing data in the target volumes, including API keys. Any clients using the old keys will need to be updated.
 
 ```bash
-# Stop services
+# Stop and remove containers (data is preserved in Docker volumes)
 docker compose down
 
 # Restore all volumes from backup
@@ -159,6 +160,7 @@ echo "Restore complete. Verify with: ./stack-check.sh"
 **Warning:** This overwrites all existing data in the target volume.
 
 ```bash
+# Stop and remove containers (data is preserved in Docker volumes)
 docker compose down
 
 docker volume create ollama-data >/dev/null 2>&1 || true
@@ -219,7 +221,7 @@ Before running `docker compose pull && docker compose up -d`:
 If something breaks after an upgrade:
 
 ```bash
-# Stop the broken stack
+# Stop and remove containers (data is preserved in Docker volumes)
 docker compose down
 
 # Restore from backup

@@ -24,7 +24,7 @@ Includes Ollama, LiteLLM, AnythingLLM, Whisper, MCP Gateway, Embeddings, Docling
 
 - 📬 [Subscribe for project updates](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai) (1–2 emails/month) — get free AI and VPN deployment guides (PDF)
 - 💬 Join the [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) community for discussions and showcases
-- ⭐ Star the repository if Docker AI Stack is useful to you
+- ⭐ Star the repository if you find it useful — it helps others discover it
 
 Docker AI Stack is maintained by the author of [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn) (27k+ stars).
 
@@ -65,52 +65,49 @@ docker compose up -d
 docker exec ollama ollama_manage --pull llama3.2:3b
 ```
 
-Check the logs to confirm all services are ready:
-
-```bash
-docker compose logs
-```
-
 Run the health check to verify all services are working:
 
 ```bash
 ./stack-check.sh
 ```
 
-**Get the API keys:**
+> **Tip:** On first start, services may take a few minutes to initialize. If any checks fail, wait and run `./stack-check.sh` again. Use `docker compose logs` to check progress.
+
+**Get the LiteLLM API key** (used to log into the Admin UI and for LLM requests):
 
 ```bash
-# Ollama API key
-docker exec ollama ollama_manage --showkey
-
-# LiteLLM API key
 docker exec litellm litellm_manage --showkey
+```
 
-# MCP Gateway API key
+<details>
+<summary>Show all API keys (Ollama, LiteLLM, MCP Gateway)</summary>
+
+```bash
+docker exec ollama ollama_manage --showkey
+docker exec litellm litellm_manage --showkey
 docker exec mcp mcp_manage --showkey
 ```
 
+</details>
+
 **Access AnythingLLM (Chat UI):**
 
-Open `http://<server-ip>:3001` in your browser. AnythingLLM is pre-configured to connect to your local LLM via LiteLLM — no login or setup required. Start chatting immediately.
+Open `http://<server-ip>:3001` in your browser. AnythingLLM is pre-configured to connect to your local LLM via LiteLLM — no login or setup required. Start chatting immediately. On first start, it may take a few minutes to become available (check progress with `docker logs anythingllm`).
 
-**Note:** On first start, AnythingLLM may take a few minutes to become available while it waits for the LiteLLM API key. Check progress with `docker logs anythingllm`.
-
-**Note:** For internet-facing deployments, using a [reverse proxy](#internet-facing-deployments) to add HTTPS is **strongly recommended**. In that case, also change `"3001:3001/tcp"` to `"127.0.0.1:3001:3001/tcp"` in `docker-compose.yml`, to prevent direct access to the unencrypted port. [Set a password](https://docs.useanything.com/features/security-and-access) to protect AnythingLLM, especially when the server is accessible from the public internet.
+> **Tip:** [Set a password](https://docs.useanything.com/features/security-and-access) to protect AnythingLLM, especially when the server is accessible from the public internet.
 
 **Access the LiteLLM Admin UI:**
 
 Open `http://<server-ip>:4000/ui` in your browser. Log in with username `admin` and your LiteLLM master key as the password. The UI provides virtual key management, spend tracking, and model configuration.
 
-**Note:** For internet-facing deployments, using a [reverse proxy](#internet-facing-deployments) to add HTTPS is **strongly recommended**. In that case, also change `"4000:4000/tcp"` to `"127.0.0.1:4000:4000/tcp"` in `docker-compose.yml`, to prevent direct access to the unencrypted port.
+> **Tip:** In the Admin UI, click **Playground** in the left menu. Select a local model (e.g., `ollama/llama3.2:3b`) from the dropdown and start chatting — a quick way to verify your local LLM is working end-to-end.
 
-**Try it in the Playground:**
-
-In the Admin UI, click **Playground** in the left menu. Select a local model (e.g., `ollama/llama3.2:3b`) from the dropdown and start chatting — this is a quick way to verify your local LLM is working end-to-end.
+> **Note:** For internet-facing deployments, using a [reverse proxy](#internet-facing-deployments) to add HTTPS is **strongly recommended**. Change `"3001:3001/tcp"` and `"4000:4000/tcp"` to `"127.0.0.1:3001:3001/tcp"` and `"127.0.0.1:4000:4000/tcp"` in `docker-compose.yml` to prevent direct access to unencrypted ports.
 
 **Stop the stack:**
 
 ```bash
+# Stop and remove all containers (data is preserved in Docker volumes)
 docker compose down
 ```
 
@@ -417,6 +414,7 @@ docker exec litellm litellm_manage --showkey
 docker exec mcp mcp_manage --showkey
 
 # Back up all volumes (stop services first)
+# Stop and remove all containers (data is preserved in Docker volumes)
 docker compose down
 mkdir -p backups
 for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do

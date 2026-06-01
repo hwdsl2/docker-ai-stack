@@ -46,7 +46,7 @@ cat ai-stack-keys.txt
 先停止技術堆疊以確保資料一致性：
 
 ```bash
-# 停止服務
+# 停止並移除容器（資料保留在 Docker 卷中）
 docker compose down
 
 # 建立備份目錄
@@ -72,6 +72,7 @@ ls -lh backups/*.tar.gz
 ### 備份單個磁碟區
 
 ```bash
+# 停止並移除容器（資料保留在 Docker 卷中）
 docker compose down
 
 docker run --rm \
@@ -128,7 +129,7 @@ docker compose up -d
 **警告：** 還原操作會覆寫目標磁碟區中的所有現有資料，包括 API 金鑰。使用舊金鑰的用戶端需要更新。
 
 ```bash
-# 停止服務
+# 停止並移除容器（資料保留在 Docker 卷中）
 docker compose down
 
 # 從備份還原所有磁碟區
@@ -159,6 +160,7 @@ echo "Restore complete. Verify with: ./stack-check.sh"
 **警告：** 此操作會覆寫目標磁碟區中的所有現有資料。
 
 ```bash
+# 停止並移除容器（資料保留在 Docker 卷中）
 docker compose down
 
 docker volume create ollama-data >/dev/null 2>&1 || true
@@ -219,7 +221,7 @@ docker compose up -d
 如果升級後出現問題：
 
 ```bash
-# 停止故障的技術堆疊
+# 停止並移除容器（資料保留在 Docker 卷中）
 docker compose down
 
 # 從備份還原

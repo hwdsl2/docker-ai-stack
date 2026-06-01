@@ -24,7 +24,7 @@
 
 - 📬 [订阅项目更新](https://selfhostedstack.beehiiv.com/subscribe?utm_campaign=ai-zh)（每月 1–2 封邮件）——获取免费的 AI 和 VPN 部署指南（PDF，英文）
 - 💬 加入 [r/selfhostedstack](https://www.reddit.com/r/selfhostedstack/) 社区，参与讨论和项目展示
-- ⭐ 如果 Docker AI Stack 对您有帮助，请为仓库加星
+- ⭐ 如果你觉得本项目有用，请为仓库加星——这有助于让更多人发现它。
 
 Docker AI Stack 由 [Setup IPsec VPN](https://github.com/hwdsl2/setup-ipsec-vpn)（27k+ 星标）的作者维护。
 
@@ -65,52 +65,49 @@ docker compose up -d
 docker exec ollama ollama_manage --pull llama3.2:3b
 ```
 
-查看日志确认所有服务已就绪：
-
-```bash
-docker compose logs
-```
-
 运行健康检查以验证所有服务正常工作：
 
 ```bash
 ./stack-check.sh
 ```
 
-**获取 API 密钥：**
+> **提示：** 首次启动时，服务可能需要几分钟完成初始化。如有检查失败，请稍等后再次运行 `./stack-check.sh`。使用 `docker compose logs` 查看进度。
+
+**获取 LiteLLM API 密钥**（用于登录管理界面和 LLM 请求）：
 
 ```bash
-# Ollama API 密钥
-docker exec ollama ollama_manage --showkey
-
-# LiteLLM API 密钥
 docker exec litellm litellm_manage --showkey
+```
 
-# MCP Gateway API 密钥
+<details>
+<summary>显示所有 API 密钥（Ollama、LiteLLM、MCP Gateway）</summary>
+
+```bash
+docker exec ollama ollama_manage --showkey
+docker exec litellm litellm_manage --showkey
 docker exec mcp mcp_manage --showkey
 ```
 
+</details>
+
 **访问 AnythingLLM（聊天界面）：**
 
-在浏览器中打开 `http://<server-ip>:3001`。AnythingLLM 已预配置通过 LiteLLM 连接本地大语言模型 — 无需登录或设置，即可立即开始对话。
+在浏览器中打开 `http://<server-ip>:3001`。AnythingLLM 已预配置通过 LiteLLM 连接本地大语言模型 — 无需登录或设置，即可立即开始对话。首次启动时，可能需要几分钟才能就绪（使用 `docker logs anythingllm` 查看进度）。
 
-**注：** 首次启动时，AnythingLLM 可能需要几分钟才能就绪（等待 LiteLLM API 密钥）。可使用 `docker logs anythingllm` 查看进度。
-
-**注：** 对于面向互联网的部署，强烈建议使用[反向代理](#面向互联网的部署)添加 HTTPS。在这种情况下，还需将 `docker-compose.yml` 中的 `"3001:3001/tcp"` 改为 `"127.0.0.1:3001:3001/tcp"`，以防止直接访问未加密端口。请[设置密码](https://docs.useanything.com/features/security-and-access)保护 AnythingLLM，尤其是在服务器可从公网访问时。
+> **提示：** 请[设置密码](https://docs.useanything.com/features/security-and-access)保护 AnythingLLM，尤其是在服务器可从公网访问时。
 
 **访问 LiteLLM 管理界面：**
 
 在浏览器中打开 `http://<server-ip>:4000/ui`。使用用户名 `admin` 和您的 LiteLLM 主密钥作为密码登录。管理界面提供虚拟密钥管理、支出追踪和模型配置功能。
 
-**注：** 对于面向互联网的部署，强烈建议使用[反向代理](#面向互联网的部署)添加 HTTPS。在这种情况下，还需将 `docker-compose.yml` 中的 `"4000:4000/tcp"` 改为 `"127.0.0.1:4000:4000/tcp"`，以防止直接访问未加密端口。
+> **提示：** 在管理界面中，点击左侧菜单的 **Playground**。从下拉列表中选择本地模型（例如 `ollama/llama3.2:3b`）并开始对话 — 这是验证本地大语言模型端到端正常工作的一种快速方式。
 
-**在 Playground 中试用：**
-
-在管理界面中，点击左侧菜单的 **Playground**。从下拉列表中选择本地模型（例如 `ollama/llama3.2:3b`）并开始对话 — 这是验证本地大语言模型端到端正常工作的一种快速方式。
+> **注：** 对于面向互联网的部署，强烈建议使用[反向代理](#面向互联网的部署)添加 HTTPS。将 `docker-compose.yml` 中的 `"3001:3001/tcp"` 和 `"4000:4000/tcp"` 分别改为 `"127.0.0.1:3001:3001/tcp"` 和 `"127.0.0.1:4000:4000/tcp"`，以防止直接访问未加密端口。
 
 **停止技术栈：**
 
 ```bash
+# 停止并移除所有容器（数据保留在 Docker 卷中）
 docker compose down
 ```
 
@@ -417,6 +414,7 @@ docker exec litellm litellm_manage --showkey
 docker exec mcp mcp_manage --showkey
 
 # 备份所有卷（先停止服务）
+# 停止并移除所有容器（数据保留在 Docker 卷中）
 docker compose down
 mkdir -p backups
 for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do

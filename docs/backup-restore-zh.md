@@ -46,7 +46,7 @@ cat ai-stack-keys.txt
 先停止技术栈以确保数据一致性：
 
 ```bash
-# 停止服务
+# 停止并移除容器（数据保留在 Docker 卷中）
 docker compose down
 
 # 创建备份目录
@@ -72,6 +72,7 @@ ls -lh backups/*.tar.gz
 ### 备份单个卷
 
 ```bash
+# 停止并移除容器（数据保留在 Docker 卷中）
 docker compose down
 
 docker run --rm \
@@ -128,7 +129,7 @@ docker compose up -d
 **警告：** 恢复操作会覆盖目标卷中的所有现有数据，包括 API 密钥。使用旧密钥的客户端需要更新。
 
 ```bash
-# 停止服务
+# 停止并移除容器（数据保留在 Docker 卷中）
 docker compose down
 
 # 从备份恢复所有卷
@@ -159,6 +160,7 @@ echo "Restore complete. Verify with: ./stack-check.sh"
 **警告：** 此操作会覆盖目标卷中的所有现有数据。
 
 ```bash
+# 停止并移除容器（数据保留在 Docker 卷中）
 docker compose down
 
 docker volume create ollama-data >/dev/null 2>&1 || true
@@ -219,7 +221,7 @@ docker compose up -d
 如果升级后出现问题：
 
 ```bash
-# 停止故障的技术栈
+# 停止并移除容器（数据保留在 Docker 卷中）
 docker compose down
 
 # 从备份恢复
