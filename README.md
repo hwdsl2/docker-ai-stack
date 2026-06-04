@@ -129,6 +129,8 @@ docker compose -f docker-compose.cuda.yml up -d
 
 **Requirements:** NVIDIA GPU, [NVIDIA driver](https://www.nvidia.com/en-us/drivers/) 535+, and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on the host. CUDA images are `linux/amd64` only.
 
+> **Podman users:** The Compose `deploy:` GPU block is ignored by Podman. Use CDI instead — see [Using Podman](#using-podman).
+
 ## Lightweight stacks
 
 Don't need the full stack? Use a pre-configured subset from the `stacks/` folder:
@@ -282,6 +284,68 @@ docker run -d --name docling --restart always \
 ```
 
 **Note:** The shared network allows services to reach each other by container name (e.g., LiteLLM connects to Ollama via `http://ollama:11434`). You can start only the services you need — they don't all have to run together.
+
+## Using Podman
+
+The stack runs under [Podman](https://podman.io/) on a best-effort basis. The CPU compose files work as-is; GPU acceleration and SELinux-enabled hosts need a couple of extra steps described below. Podman **4.1+** is recommended.
+
+**1. Install the Docker CLI shim.** So that the `docker` commands in this README and the `stack-check.sh` health check work unchanged, install the `podman-docker` package (provides a `docker` → `podman` wrapper):
+
+```bash
+# Fedora / RHEL / CentOS Stream
+sudo dnf install -y podman-docker
+
+# Debian / Ubuntu
+sudo apt-get install -y podman-docker
+```
+
+> **Note:** A shell `alias docker=podman` is **not** sufficient — aliases are not seen by scripts such as `stack-check.sh`. Use the `podman-docker` package (or a `docker` → `podman` symlink in your `PATH`) instead. Alternatively, `stack-check.sh` auto-detects Podman; you can also force it with `CONTAINER_ENGINE=podman ./stack-check.sh`.
+
+**2. Install a Compose provider.** `podman compose` delegates to an external provider. Install either `podman-compose` or `docker-compose`:
+
+```bash
+# Fedora / RHEL / CentOS Stream
+sudo dnf install -y podman-compose
+
+# Debian / Ubuntu
+sudo apt-get install -y podman-compose
+```
+
+**3. Start the stack.** With the shim installed, every command in this README works unchanged. Without it, substitute `podman` for `docker`:
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack
+podman compose up -d
+```
+
+Run the health check (auto-detects the engine):
+
+```bash
+./stack-check.sh
+```
+
+**GPU acceleration (CDI).** Podman does not read the Compose `deploy.resources` GPU block. Instead, use the [Container Device Interface (CDI)](https://github.com/cncf-tags/container-device-interface). After installing the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), generate a CDI spec:
+
+```bash
+sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+```
+
+Then expose the GPU to the relevant services. For `podman compose`, replace the `deploy:` block in `docker-compose.cuda.yml` with a `devices:` entry for the `ollama` (and `whisper`) services:
+
+```yaml
+    devices:
+      - nvidia.com/gpu=all
+```
+
+For a plain `podman run` command, add `--device nvidia.com/gpu=all`.
+
+**SELinux.** On SELinux-enabled hosts (Fedora, RHEL, CentOS Stream), bind-mounted files need a relabel suffix, or the container will be denied access. Add `:z` (shared) to the `chat-ui-bootstrap.sh` bind mount:
+
+- In `docker-compose.yml`: change `./chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro` to `./chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro,z`
+- In the `podman run` command above: change `"$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro"` to `"$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro,z"`
+
+Named volumes do not need relabeling.
 
 **Pull a model** (required before making LLM requests):
 

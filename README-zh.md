@@ -129,6 +129,8 @@ docker compose -f docker-compose.cuda.yml up -d
 
 **要求：** NVIDIA GPU、[NVIDIA 驱动](https://www.nvidia.com/en-us/drivers/) 535+，以及在宿主机上安装 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)。CUDA 镜像仅支持 `linux/amd64`。
 
+> **Podman 用户：** Podman 会忽略 Compose 的 `deploy:` GPU 配置块。请改用 CDI — 参见[使用 Podman](#使用-podman)。
+
 ## 轻量级技术栈
 
 不需要完整技术栈？使用 `stacks/` 文件夹中的预配置子集：
@@ -282,6 +284,68 @@ docker run -d --name docling --restart always \
 ```
 
 **注：** 共享网络允许服务通过容器名称互相访问（例如 LiteLLM 通过 `http://ollama:11434` 连接 Ollama）。您可以只启动需要的服务 — 不必全部运行。
+
+## 使用 Podman
+
+本技术栈在尽力支持的基础上可在 [Podman](https://podman.io/) 上运行。CPU 编排文件无需修改即可使用；GPU 加速和启用了 SELinux 的宿主机需要下文所述的几个额外步骤。建议使用 Podman **4.1+**。
+
+**1. 安装 Docker CLI 兼容层。** 为使本 README 中的 `docker` 命令以及 `stack-check.sh` 健康检查脚本无需改动即可运行，请安装 `podman-docker` 软件包（提供 `docker` → `podman` 封装）：
+
+```bash
+# Fedora / RHEL / CentOS Stream
+sudo dnf install -y podman-docker
+
+# Debian / Ubuntu
+sudo apt-get install -y podman-docker
+```
+
+> **注：** shell 别名 `alias docker=podman` **不**足够 — 脚本（如 `stack-check.sh`）无法识别别名。请改用 `podman-docker` 软件包（或在 `PATH` 中创建 `docker` → `podman` 符号链接）。此外，`stack-check.sh` 会自动检测 Podman；您也可以通过 `CONTAINER_ENGINE=podman ./stack-check.sh` 强制指定。
+
+**2. 安装 Compose 提供程序。** `podman compose` 会委托给外部提供程序。请安装 `podman-compose` 或 `docker-compose` 之一：
+
+```bash
+# Fedora / RHEL / CentOS Stream
+sudo dnf install -y podman-compose
+
+# Debian / Ubuntu
+sudo apt-get install -y podman-compose
+```
+
+**3. 启动技术栈。** 安装兼容层后，本 README 中的每条命令均可原样运行。若未安装，请将 `docker` 替换为 `podman`：
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack
+podman compose up -d
+```
+
+运行健康检查（自动检测引擎）：
+
+```bash
+./stack-check.sh
+```
+
+**GPU 加速 (CDI)。** Podman 不会读取 Compose 的 `deploy.resources` GPU 配置块。请改用[容器设备接口 (CDI)](https://github.com/cncf-tags/container-device-interface)。在安装 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) 后，生成 CDI 规范：
+
+```bash
+sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+```
+
+然后将 GPU 暴露给相关服务。对于 `podman compose`，请将 `docker-compose.cuda.yml` 中 `ollama`（及 `whisper`）服务的 `deploy:` 配置块替换为 `devices:` 条目：
+
+```yaml
+    devices:
+      - nvidia.com/gpu=all
+```
+
+对于普通的 `podman run` 命令，请添加 `--device nvidia.com/gpu=all`。
+
+**SELinux。** 在启用了 SELinux 的宿主机上（Fedora、RHEL、CentOS Stream），绑定挂载的文件需要重新打标签后缀，否则容器将被拒绝访问。请为 `chat-ui-bootstrap.sh` 绑定挂载添加 `:z`（共享）后缀：
+
+- 在 `docker-compose.yml` 中：将 `./chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro` 改为 `./chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro,z`
+- 在上文的 `podman run` 命令中：将 `"$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro"` 改为 `"$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro,z"`
+
+命名卷无需重新打标签。
 
 **拉取模型**（发出 LLM 请求前必须执行）：
 

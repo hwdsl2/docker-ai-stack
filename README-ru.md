@@ -129,6 +129,8 @@ docker compose -f docker-compose.cuda.yml up -d
 
 **Требования:** GPU NVIDIA, [драйвер NVIDIA](https://www.nvidia.com/en-us/drivers/) 535+, и [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), установленный на хосте. CUDA-образы поддерживают только `linux/amd64`.
 
+> **Пользователям Podman:** Podman игнорирует блок GPU `deploy:` в Compose. Используйте вместо него CDI — см. [Использование Podman](#использование-podman).
+
 ## Облегчённые стеки
 
 Не нужен полный стек? Используйте преднастроенное подмножество из папки `stacks/`:
@@ -282,6 +284,68 @@ docker run -d --name docling --restart always \
 ```
 
 **Примечание:** Общая сеть позволяет сервисам обращаться друг к другу по имени контейнера (например, LiteLLM подключается к Ollama через `http://ollama:11434`). Вы можете запускать только нужные сервисы — не обязательно запускать все.
+
+## Использование Podman
+
+Стек работает под [Podman](https://podman.io/) на основе наилучших усилий. Compose-файлы для CPU работают без изменений; для GPU-ускорения и хостов с включённым SELinux нужны несколько дополнительных шагов, описанных ниже. Рекомендуется Podman **4.1+**.
+
+**1. Установите слой совместимости с Docker CLI.** Чтобы команды `docker` из этого README и скрипт проверки `stack-check.sh` работали без изменений, установите пакет `podman-docker` (предоставляет обёртку `docker` → `podman`):
+
+```bash
+# Fedora / RHEL / CentOS Stream
+sudo dnf install -y podman-docker
+
+# Debian / Ubuntu
+sudo apt-get install -y podman-docker
+```
+
+> **Примечание:** Псевдонима оболочки `alias docker=podman` **недостаточно** — псевдонимы не видны скриптам, таким как `stack-check.sh`. Используйте пакет `podman-docker` (или символическую ссылку `docker` → `podman` в `PATH`). Кроме того, `stack-check.sh` автоматически определяет Podman; вы также можете явно указать его через `CONTAINER_ENGINE=podman ./stack-check.sh`.
+
+**2. Установите провайдер Compose.** `podman compose` делегирует выполнение внешнему провайдеру. Установите `podman-compose` или `docker-compose`:
+
+```bash
+# Fedora / RHEL / CentOS Stream
+sudo dnf install -y podman-compose
+
+# Debian / Ubuntu
+sudo apt-get install -y podman-compose
+```
+
+**3. Запустите стек.** При установленном слое совместимости каждая команда из этого README работает без изменений. Без него замените `docker` на `podman`:
+
+```bash
+git clone https://github.com/hwdsl2/docker-ai-stack
+cd docker-ai-stack
+podman compose up -d
+```
+
+Запустите проверку работоспособности (движок определяется автоматически):
+
+```bash
+./stack-check.sh
+```
+
+**GPU-ускорение (CDI).** Podman не читает блок GPU `deploy.resources` в Compose. Вместо этого используйте [Container Device Interface (CDI)](https://github.com/cncf-tags/container-device-interface). После установки [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) сгенерируйте спецификацию CDI:
+
+```bash
+sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+```
+
+Затем предоставьте GPU соответствующим сервисам. Для `podman compose` замените блок `deploy:` у сервисов `ollama` (и `whisper`) в `docker-compose.cuda.yml` на запись `devices:`:
+
+```yaml
+    devices:
+      - nvidia.com/gpu=all
+```
+
+Для обычной команды `podman run` добавьте `--device nvidia.com/gpu=all`.
+
+**SELinux.** На хостах с включённым SELinux (Fedora, RHEL, CentOS Stream) для смонтированных файлов нужен суффикс переразметки, иначе контейнеру будет отказано в доступе. Добавьте `:z` (общий) к монтированию `chat-ui-bootstrap.sh`:
+
+- В `docker-compose.yml`: измените `./chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro` на `./chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro,z`
+- В команде `podman run` выше: измените `"$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro"` на `"$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro,z"`
+
+Именованным томам переразметка не требуется.
 
 **Загрузка модели** (обязательно перед отправкой LLM-запросов):
 
