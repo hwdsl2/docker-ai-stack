@@ -14,9 +14,32 @@
 #
 # Automatically detects which services are running and checks each one.
 # Works with the full stack and all lightweight stacks (chat-ui, chat-only,
-# rag-pipeline, ai-tools, voice-pipeline).
+# rag-pipeline, rag-pipeline-full, ai-tools, code-assistant, voice-pipeline,
+# voice-chat).
+#
+# Container engine: auto-detects Docker or Podman. Override with the
+# CONTAINER_ENGINE environment variable, e.g. CONTAINER_ENGINE=podman ./stack-check.sh
 
 set -euo pipefail
+
+# Detect the container engine (Docker or Podman).
+# Honor CONTAINER_ENGINE if set; otherwise prefer docker, then podman.
+if [ -n "${CONTAINER_ENGINE:-}" ]; then
+  ENGINE="$CONTAINER_ENGINE"
+elif command -v docker >/dev/null 2>&1; then
+  ENGINE="docker"
+elif command -v podman >/dev/null 2>&1; then
+  ENGINE="podman"
+else
+  echo "Error: neither 'docker' nor 'podman' was found in PATH." >&2
+  echo "Install one of them, or set CONTAINER_ENGINE to the engine you use." >&2
+  exit 1
+fi
+
+if ! command -v "$ENGINE" >/dev/null 2>&1; then
+  echo "Error: container engine '$ENGINE' was not found in PATH." >&2
+  exit 1
+fi
 
 # Colors (disabled if not a terminal)
 if [ -t 1 ]; then
@@ -39,14 +62,28 @@ fail() { echo -e "  ${RED}✗${NC} $1"; FAIL=$((FAIL + 1)); }
 warn() { echo -e "  ${YELLOW}!${NC} $1"; WARN=$((WARN + 1)); }
 info() { echo -e "${CYAN}▶${NC} $1"; }
 
-# Detect running containers by image name (works even with custom container names)
+# Detect running containers by image name (works even with custom container names).
 container_for_image() {
-  docker ps --filter "ancestor=$1" --format '{{.Names}}' 2>/dev/null | head -1
+  local image="$1"
+  # List "<name> <image>" for running containers, then match the image column
+  # against the base repository, ignoring any ":tag" or "@digest" suffix and any
+  # registry prefix (e.g. Podman's "docker.io/" qualification).
+  "$ENGINE" ps --format '{{.Names}} {{.Image}}' 2>/dev/null | awk -v img="$image" '
+    {
+      ref = $2
+      sub(/@.*/, "", ref)        # strip digest
+      sub(/:[^:\/]*$/, "", ref)  # strip tag (but not a registry :port)
+      if (ref == img || ref ~ ("/" img "$")) { print $1; exit }
+    }'
 }
 
-# Also try by container name (standard compose setup)
+# Also try by container name (standard compose setup).
+# Filter by name, then exact-match the Names column. Avoids the Docker-only
+# "^/name$" anchor convention (Podman stores names without a leading slash),
+# and the post-filter comparison prevents substring false positives.
 container_running() {
-  docker ps --filter "name=^/${1}$" --format '{{.Names}}' 2>/dev/null | head -1
+  "$ENGINE" ps --filter "name=$1" --format '{{.Names}}' 2>/dev/null \
+    | awk -v n="$1" '$0 == n { print; exit }'
 }
 
 # Find a running service: try container name first, then image name
@@ -92,16 +129,16 @@ if [ -n "$OLLAMA" ]; then
   pass "Container running"
 
   # Check if at least one model is pulled
-  MODEL_COUNT=$(docker exec "$OLLAMA" ollama_manage --listmodels | awk 'NF >= 4 && $2 ~ /^[a-f0-9]+$/ { print $1 }' | wc -l | tr -d ' ') || MODEL_COUNT=0
+  MODEL_COUNT=$("$ENGINE" exec "$OLLAMA" ollama_manage --listmodels | awk 'NF >= 4 && $2 ~ /^[a-f0-9]+$/ { print $1 }' | wc -l | tr -d ' ') || MODEL_COUNT=0
   if [ "$MODEL_COUNT" -gt 0 ]; then
-    MODELS=$(docker exec "$OLLAMA" ollama_manage --listmodels | awk 'NF >= 4 && $2 ~ /^[a-f0-9]+$/ { print $1 }' | paste -sd',' - | sed 's/,/, /g')
+    MODELS=$("$ENGINE" exec "$OLLAMA" ollama_manage --listmodels | awk 'NF >= 4 && $2 ~ /^[a-f0-9]+$/ { print $1 }' | paste -sd',' - | sed 's/,/, /g')
     pass "Models available ($MODEL_COUNT): $MODELS"
   else
-    fail "No models pulled — run: docker exec $OLLAMA ollama_manage --pull llama3.2:3b"
+    fail "No models pulled — run: $ENGINE exec $OLLAMA ollama_manage --pull llama3.2:3b"
   fi
 
   # Check API key exists
-  if docker exec "$OLLAMA" test -f /var/lib/ollama/.api_key 2>/dev/null; then
+  if "$ENGINE" exec "$OLLAMA" test -f /var/lib/ollama/.api_key 2>/dev/null; then
     pass "API key generated"
   else
     warn "API key file not found"
@@ -128,7 +165,7 @@ if [ -n "$LITELLM" ]; then
   fi
 
   # Check API key exists
-  if docker exec "$LITELLM" test -f /etc/litellm/.master_key 2>/dev/null; then
+  if "$ENGINE" exec "$LITELLM" test -f /etc/litellm/.master_key 2>/dev/null; then
     pass "API key generated"
   else
     warn "API key file not found"
@@ -136,9 +173,9 @@ if [ -n "$LITELLM" ]; then
 
   # If Ollama is running and has models, test a routing check
   if [ -n "$OLLAMA" ] && [ "$MODEL_COUNT" -gt 0 ]; then
-    LITELLM_KEY=$(docker exec "$LITELLM" litellm_manage --showkey 2>/dev/null | sed 's/^ //' | grep '^sk-' | head -1) || LITELLM_KEY=""
+    LITELLM_KEY=$("$ENGINE" exec "$LITELLM" litellm_manage --showkey 2>/dev/null | sed 's/^ //' | grep '^sk-' | head -1) || LITELLM_KEY=""
     if [ -n "$LITELLM_KEY" ]; then
-      FIRST_MODEL=$(docker exec "$OLLAMA" ollama_manage --listmodels | awk 'NF >= 4 && $2 ~ /^[a-f0-9]+$/ { print $1 }' | head -1)
+      FIRST_MODEL=$("$ENGINE" exec "$OLLAMA" ollama_manage --listmodels | awk 'NF >= 4 && $2 ~ /^[a-f0-9]+$/ { print $1 }' | head -1)
       echo -e "  ${CYAN}…${NC} Testing LLM routing (please wait)..."
       if http_post_ok "http://localhost:4000/v1/chat/completions" \
         -H "Authorization: Bearer $LITELLM_KEY" \
@@ -227,12 +264,12 @@ if [ -n "$MCP" ]; then
   pass "Container running"
 
   # Check API key
-  MCP_KEY=$(docker exec "$MCP" mcp_manage --showkey 2>/dev/null | sed 's/^ //' | grep '^mcp-' | head -1) || MCP_KEY=""
+  MCP_KEY=$("$ENGINE" exec "$MCP" mcp_manage --showkey 2>/dev/null | sed 's/^ //' | grep '^mcp-' | head -1) || MCP_KEY=""
   if [ -n "$MCP_KEY" ]; then
     pass "API key generated"
 
     # Test MCP initialize handshake
-    INIT_RESP=$(docker exec "$MCP" curl -sf --max-time 10 "http://127.0.0.1:3000/mcp" \
+    INIT_RESP=$("$ENGINE" exec "$MCP" curl -sf --max-time 10 "http://127.0.0.1:3000/mcp" \
       -X POST \
       -H "Authorization: Bearer $MCP_KEY" \
       -H "Content-Type: application/json" \
