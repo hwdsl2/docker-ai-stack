@@ -275,7 +275,7 @@ docker run -d --name anythingllm --restart always \
     -v litellm-shared:/var/lib/litellm-shared:ro \
     -v "$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro" \
     --entrypoint /bin/bash \
-    mintplexlabs/anythingllm \
+    mintplexlabs/anythingllm:1.13 \
     /usr/local/bin/chat-ui-bootstrap.sh
 
 # Kokoro (TTS)
@@ -544,6 +544,8 @@ docker compose up -d
 ```
 
 `git pull` 用於更新所有專案檔案（包括 compose 檔案的變更）；`docker compose pull` 用於更新服務映像檔。如果您自訂過 `docker-compose.yml`，`git pull` 將自動合併變更，或在同一行存在衝突時提示您解決衝突。
+
+AnythingLLM 固定為穩定發布標籤，而不是 `latest`，因為上游 `latest` 映像檔會追蹤 master 分支。有新的 AnythingLLM 發布版本時，請先備份，更新 compose 檔案中的標籤，然後執行上述命令。
 
 您的資料保存在 Docker 磁碟區中。**升級前請務必[備份](#備份與還原)。**
 

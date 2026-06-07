@@ -19,6 +19,12 @@ All notable changes to docker-ai-stack are documented here.
 
 ### Changed
 
+- **Pinned AnythingLLM to the stable release tag `1.13`.** The upstream
+  `mintplexlabs/anythingllm:latest` image tracks the master branch and can
+  change on every commit, so the compose files and `docker run` examples now
+  use `mintplexlabs/anythingllm:1.13` for safer, release-based updates. Users
+  already running `latest` should back up `anythingllm-data` before recreating
+  the container, especially if they used unreleased AnythingLLM features.
 - Raised healthcheck `interval` from 5s to 15s across all services and
   stacks to reduce steady-state probe overhead. Existing `start_period`
   settings remain unchanged to accommodate slow-starting services

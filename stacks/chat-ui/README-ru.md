@@ -134,7 +134,7 @@ docker run -d --name anythingllm --restart always \
     -v litellm-shared:/var/lib/litellm-shared:ro \
     -v "$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro" \
     --entrypoint /bin/bash \
-    mintplexlabs/anythingllm \
+    mintplexlabs/anythingllm:1.13 \
     /usr/local/bin/chat-ui-bootstrap.sh
 ```
 
@@ -230,6 +230,8 @@ server {
 docker compose pull
 docker compose up -d
 ```
+
+AnythingLLM закреплен на стабильном теге релиза, а не на `latest`, потому что upstream-образ `latest` отслеживает ветку master. Когда выйдет новый релиз AnythingLLM, сначала создайте резервную копию, обновите тег в compose-файлах, затем выполните команды выше.
 
 Ваши данные сохраняются в томах Docker. **Всегда делайте [резервную копию](../../docs/backup-restore-ru.md) перед обновлением.**
 

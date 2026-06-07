@@ -134,7 +134,7 @@ docker run -d --name anythingllm --restart always \
     -v litellm-shared:/var/lib/litellm-shared:ro \
     -v "$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro" \
     --entrypoint /bin/bash \
-    mintplexlabs/anythingllm \
+    mintplexlabs/anythingllm:1.13 \
     /usr/local/bin/chat-ui-bootstrap.sh
 ```
 
@@ -230,6 +230,8 @@ server {
 docker compose pull
 docker compose up -d
 ```
+
+AnythingLLM 固定為穩定發布標籤，而不是 `latest`，因為上游 `latest` 映像會追蹤 master 分支。有新的 AnythingLLM 發布版本時，請先備份，更新 compose 檔案中的標籤，然後執行上述命令。
 
 您的資料保存在 Docker 卷中。 **升級前務必先[備份](../../docs/backup-restore-zh-Hant.md)。**
 

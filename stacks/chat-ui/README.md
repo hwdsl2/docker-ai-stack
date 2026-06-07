@@ -134,7 +134,7 @@ docker run -d --name anythingllm --restart always \
     -v litellm-shared:/var/lib/litellm-shared:ro \
     -v "$(pwd)/chat-ui-bootstrap.sh:/usr/local/bin/chat-ui-bootstrap.sh:ro" \
     --entrypoint /bin/bash \
-    mintplexlabs/anythingllm \
+    mintplexlabs/anythingllm:1.13 \
     /usr/local/bin/chat-ui-bootstrap.sh
 ```
 
@@ -230,6 +230,8 @@ To update all services to the latest versions:
 docker compose pull
 docker compose up -d
 ```
+
+AnythingLLM is pinned to a stable release tag instead of `latest` because the upstream `latest` image tracks the master branch. When a newer AnythingLLM release is available, back up first, update the tag in the compose files, then run the commands above.
 
 Your data is preserved in the Docker volumes. **Always [back up](../../docs/backup-restore.md) before upgrading.**
 
