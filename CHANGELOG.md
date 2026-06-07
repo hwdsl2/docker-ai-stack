@@ -79,3 +79,53 @@ All notable changes to docker-ai-stack are documented here.
      the last time that will happen.
   3. Set your password again from Settings → Security. From this point
      onward it will persist across container recreation and upgrades.
+
+## Earlier notable changes
+
+The changelog was introduced on 2026-06-05 after the project was already
+active. This section is a best-effort summary of major user-facing and
+operational changes from git history, not an exhaustive commit log.
+
+### Added
+
+- Initial Docker Compose stack with Ollama, LiteLLM, Embeddings, Whisper,
+  Kokoro, MCP Gateway, persistent volumes, and NVIDIA CUDA variants.
+- Lightweight stack presets, later expanded to include `chat-only`,
+  `ai-tools`, `rag-pipeline`, `voice-pipeline`, `rag-pipeline-full`,
+  `chat-ui`, `code-assistant`, and `voice-chat`.
+- `stack-check.sh` health/diagnostic script for the full stack and
+  lightweight stacks.
+- Backup and restore documentation covering Docker volumes, generated API
+  keys, service data, and migration/pre-upgrade workflows.
+- Optional Docling document parsing, WhisperLive real-time STT, and the full
+  RAG pipeline stack.
+- AnythingLLM chat UI support, first as a lightweight `chat-ui` stack and
+  later as part of the main stack.
+- Bundled PostgreSQL for LiteLLM state, including health-gated startup and
+  persistent `litellm-db` storage.
+- Shared key volumes so LiteLLM can automatically read Ollama and MCP Gateway
+  API keys without manual copy/paste setup.
+- Specialized `code-assistant` and `voice-chat` stacks for MCP-enabled coding
+  and speech-enabled chat workflows.
+- Podman support in documentation and `stack-check.sh`, including engine
+  auto-detection and Podman-specific guidance.
+- pgvector-backed PostgreSQL image, enabling vector storage in the bundled
+  database.
+
+### Changed
+
+- Bound most non-UI service ports to `127.0.0.1` by default and stopped
+  exposing Ollama/MCP directly unless users explicitly uncomment those ports.
+- Made heavier or more specialized services such as Kokoro, Docling, and
+  WhisperLive opt-in in the main stack to keep the default footprint smaller.
+- Added container healthchecks for core dependencies and used
+  `depends_on: condition: service_healthy` where startup ordering matters.
+- Added reverse-proxy and internet-facing deployment guidance, including
+  advice to bind direct HTTP ports to localhost when using TLS termination.
+
+### Fixed
+
+- Improved `stack-check.sh` service detection, Podman compatibility, and
+  endpoint checks across optional services.
+- Iteratively expanded backup/restore docs and README guidance as new
+  volumes, shared-key paths, and lightweight stacks were added.
