@@ -51,7 +51,7 @@ services:
         condition: service_healthy
 
   anythingllm:
-    image: mintplexlabs/anythingllm
+    image: mintplexlabs/anythingllm:1.13
     container_name: anythingllm
     restart: always
     ports:
