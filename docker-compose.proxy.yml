@@ -1,0 +1,33 @@
+services:
+  caddy:
+    image: caddy:2
+    container_name: ai-stack-caddy
+    restart: always
+    environment:
+      - DOMAIN=${DOMAIN:?Set DOMAIN to your public hostname, e.g. chat.example.com}
+      - ACME_EMAIL=${ACME_EMAIL:?Set ACME_EMAIL for certificate account notices}
+      - CADDY_MAX_BODY_SIZE=${CADDY_MAX_BODY_SIZE:-100MB}
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+      - "443:443/udp"
+    volumes:
+      - ./caddy:/etc/caddy:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - anythingllm
+
+  anythingllm:
+    ports: !override
+      - "127.0.0.1:3001:3001/tcp"
+
+  litellm:
+    ports: !override
+      - "127.0.0.1:4000:4000/tcp"
+
+volumes:
+  caddy-data:
+    name: caddy-data
+  caddy-config:
+    name: caddy-config

@@ -1,0 +1,21 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	request_body {
+		max_size {$CADDY_MAX_BODY_SIZE:100MB}
+	}
+
+	reverse_proxy anythingllm:3001
+}
+
+# Optional: expose LiteLLM Admin/API through Caddy on a separate hostname.
+# In proxy mode, LiteLLM's direct port is localhost-only; enabling this block
+# makes it internet-facing again, so keep the LiteLLM master key secret.
+#
+# admin.example.com {
+# 	reverse_proxy litellm:4000
+# }
