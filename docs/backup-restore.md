@@ -20,10 +20,14 @@ Each service stores its data in a named Docker volume:
 | `mcp-data` | MCP Gateway | API key, tool configuration |
 | `docling-data` | Docling | Document conversion model cache |
 | `anythingllm-data` | AnythingLLM | Chat history, workspaces, settings, uploaded documents, **admin password** (`server/.env` with `AUTH_TOKEN`/`JWT_SECRET`, plus `.initial_admin_password`) |
+| `caddy-data` | Caddy | TLS certificates, private keys, OCSP staples, ACME account state |
+| `caddy-config` | Caddy | Internal Caddy configuration storage |
 
 **Important:** API keys for Ollama, LiteLLM, and MCP Gateway are auto-generated on first start and stored inside these volumes. If you lose the volume, you lose the key. Connected clients will need to be updated with new keys.
 
 **Important (AnythingLLM):** The auto-generated admin password and its `JWT_SECRET` live in `anythingllm-data` (`server/.env` and `.initial_admin_password`). Backing up this volume preserves the password. Restoring it on a different host re-uses the same password — no need to re-seed.
+
+**Important (Caddy):** If you use the HTTPS proxy overlay, back up `caddy-data`. It contains certificate private keys and ACME account state. Deleting it forces certificate reissuance and may run into certificate authority rate limits.
 
 **Note:** The `ollama-shared`, `mcp-shared`, and `litellm-shared` volumes are ephemeral key-sharing volumes used to pass API keys between services automatically. They do not need to be backed up — the keys are already stored in `ollama-data`, `mcp-data`, and `litellm-data` respectively, and are re-copied on every container start.
 
@@ -55,7 +59,7 @@ docker compose down
 mkdir -p backups
 
 # Back up all volumes
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -125,6 +129,8 @@ docker compose up -d
 | `litellm-data` | ⚠️ Stop first | Contains config that may be written on startup |
 | `mcp-data` | ⚠️ Stop first | Contains config that may be written on startup |
 | `anythingllm-data` | ⚠️ Stop first | Active writes during chat sessions |
+| `caddy-data` | ⚠️ Stop first | Contains certificates, private keys, OCSP staples, and ACME account state |
+| `caddy-config` | ⚠️ Stop first | Convenient to back up with Caddy, but less critical than `caddy-data` |
 
 ## Restore all volumes
 
@@ -135,7 +141,7 @@ docker compose up -d
 docker compose down
 
 # Restore all volumes from backup
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -188,7 +194,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # Restore volumes (creates them automatically)
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -238,7 +244,7 @@ docker compose up -d
 
 - **Model weights** (in `ollama-data`) can be large (several GB per model). Back up only if re-downloading is impractical (slow internet, custom fine-tuned models).
 - **Model caches** (`embeddings-data`, `whisper-data`, `whisper-live-data`, `kokoro-data`, `docling-data`) are downloaded automatically on first start. You can skip backing these up if bandwidth is not a concern — they will be re-downloaded.
-- **Critical volumes** that should always be backed up: `ollama-data` (if custom models), `litellm-data`, `litellm-db`, `mcp-data` (contain API keys and configuration), and `anythingllm-data` (chat history and workspaces).
+- **Critical volumes** that should always be backed up: `ollama-data` (if custom models), `litellm-data`, `litellm-db`, `mcp-data` (contain API keys and configuration), `anythingllm-data` (chat history and workspaces), and `caddy-data` (if using the HTTPS proxy overlay).
 - Backups are standard `.tar.gz` archives. You can inspect contents with: `tar tzf backups/ollama-data.tar.gz`
 
 ### Volumes by stack
@@ -253,3 +259,4 @@ docker compose up -d
 | rag-pipeline-full | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `docling-data`, `ollama-shared` |
 | code-assistant | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `mcp-data`, `ollama-shared`, `mcp-shared` |
 | ai-tools | `ollama-data`, `litellm-data`, `litellm-db`, `mcp-data`, `ollama-shared`, `mcp-shared` |
+| HTTPS proxy overlay | `caddy-data`, `caddy-config` |

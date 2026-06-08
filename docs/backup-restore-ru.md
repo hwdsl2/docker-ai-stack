@@ -20,10 +20,14 @@
 | `mcp-data` | MCP Gateway | API-ключ, конфигурация инструментов |
 | `docling-data` | Docling | Кэш моделей конвертации документов |
 | `anythingllm-data` | AnythingLLM | История чатов, рабочие пространства, настройки, загруженные документы, **пароль администратора** (`server/.env` с `AUTH_TOKEN`/`JWT_SECRET`, а также `.initial_admin_password`) |
+| `caddy-data` | Caddy | TLS-сертификаты, приватные ключи, OCSP staples, состояние ACME-аккаунта |
+| `caddy-config` | Caddy | Внутреннее хранилище конфигурации Caddy |
 
 **Важно:** API-ключи для Ollama, LiteLLM и MCP Gateway генерируются автоматически при первом запуске и хранятся в этих томах. Если вы потеряете том, вы потеряете ключ. Подключённым клиентам потребуется обновить ключи.
 
 **Важно (AnythingLLM):** Автоматически сгенерированный пароль администратора и его `JWT_SECRET` находятся в томе `anythingllm-data` (`server/.env` и `.initial_admin_password`). Резервное копирование этого тома сохраняет пароль. При восстановлении на другом хосте используется тот же пароль — повторное создание не требуется.
+
+**Важно (Caddy):** Если вы используете HTTPS proxy overlay, сделайте резервную копию `caddy-data`. Он содержит приватные ключи сертификатов и состояние ACME-аккаунта. Удаление этого тома заставит Caddy заново выпускать сертификаты и может привести к ограничениям центра сертификации.
 
 **Примечание:** Тома `ollama-shared`, `mcp-shared` и `litellm-shared` являются временными общими томами для автоматической передачи API-ключей между сервисами. Их не нужно резервировать — ключи уже хранятся в `ollama-data`, `mcp-data` и `litellm-data` соответственно и копируются заново при каждом запуске контейнера.
 
@@ -55,7 +59,7 @@ docker compose down
 mkdir -p backups
 
 # Создать резервные копии всех томов
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -125,6 +129,8 @@ docker compose up -d
 | `litellm-data` | ⚠️ Сначала остановите | Содержит конфигурацию, которая может записываться при запуске |
 | `mcp-data` | ⚠️ Сначала остановите | Содержит конфигурацию, которая может записываться при запуске |
 | `anythingllm-data` | ⚠️ Сначала остановите | Активная запись во время сеансов чата |
+| `caddy-data` | ⚠️ Сначала остановите | Содержит сертификаты, приватные ключи, OCSP staples и состояние ACME-аккаунта |
+| `caddy-config` | ⚠️ Сначала остановите | Удобно копировать вместе с Caddy, но менее критично, чем `caddy-data` |
 
 ## Восстановление всех томов
 
@@ -135,7 +141,7 @@ docker compose up -d
 docker compose down
 
 # Восстановить все тома из резервных копий
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -188,7 +194,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # Восстановить тома (создаются автоматически)
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -238,7 +244,7 @@ docker compose up -d
 
 - **Веса моделей** (в `ollama-data`) могут быть большими (несколько ГБ на модель). Создавайте резервную копию только если повторная загрузка затруднительна (медленный интернет, модели с пользовательской дообучкой).
 - **Кэш моделей** (`embeddings-data`, `whisper-data`, `whisper-live-data`, `kokoro-data`, `docling-data`) загружается автоматически при первом запуске. Если пропускная способность не является проблемой, резервное копирование можно пропустить — они будут загружены повторно.
-- **Критические тома**, которые всегда следует копировать: `ollama-data` (если есть пользовательские модели), `litellm-data`, `litellm-db`, `mcp-data` (содержат API-ключи и конфигурацию), а также `anythingllm-data` (история чатов и рабочие пространства).
+- **Критические тома**, которые всегда следует копировать: `ollama-data` (если есть пользовательские модели), `litellm-data`, `litellm-db`, `mcp-data` (содержат API-ключи и конфигурацию), `anythingllm-data` (история чатов и рабочие пространства), а также `caddy-data` (если используется HTTPS proxy overlay).
 - Резервные копии — это стандартные архивы `.tar.gz`. Просмотреть содержимое можно командой: `tar tzf backups/ollama-data.tar.gz`
 
 ### Тома по стекам
@@ -253,3 +259,4 @@ docker compose up -d
 | rag-pipeline-full | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `docling-data`, `ollama-shared` |
 | code-assistant | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `mcp-data`, `ollama-shared`, `mcp-shared` |
 | ai-tools | `ollama-data`, `litellm-data`, `litellm-db`, `mcp-data`, `ollama-shared`, `mcp-shared` |
+| HTTPS proxy overlay | `caddy-data`, `caddy-config` |

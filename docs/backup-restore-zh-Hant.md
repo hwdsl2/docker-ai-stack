@@ -20,10 +20,14 @@
 | `mcp-data` | MCP Gateway | API 金鑰、工具設定 |
 | `docling-data` | Docling | 文件轉換模型快取 |
 | `anythingllm-data` | AnythingLLM | 聊天記錄、工作區、設定、上傳的文件、**管理員密碼**（`server/.env` 中的 `AUTH_TOKEN`/`JWT_SECRET`，以及 `.initial_admin_password`） |
+| `caddy-data` | Caddy | TLS 憑證、私鑰、OCSP staple、ACME 帳戶狀態 |
+| `caddy-config` | Caddy | Caddy 內部設定儲存 |
 
 **重要提示：** Ollama、LiteLLM 和 MCP Gateway 的 API 金鑰在首次啟動時自動產生，儲存在這些磁碟區中。如果遺失磁碟區，金鑰也會遺失。已連線的用戶端需要更新為新金鑰。
 
 **重要提示（AnythingLLM）：** 自動產生的管理員密碼及其 `JWT_SECRET` 位於 `anythingllm-data` 磁碟區中（`server/.env` 和 `.initial_admin_password`）。備份此磁碟區會保留密碼。在其他主機上還原時會重用相同的密碼 — 無需重新產生。
+
+**重要提示（Caddy）：** 如果使用 HTTPS 代理疊加檔案，請備份 `caddy-data`。它包含憑證私鑰和 ACME 帳戶狀態。刪除此卷會強制重新簽發憑證，並可能觸發憑證頒發機構的速率限制。
 
 **注：** `ollama-shared`、`mcp-shared` 和 `litellm-shared` 磁碟區是用於在服務之間自動傳遞 API 金鑰的臨時共享卷，無需備份——金鑰已分別儲存在 `ollama-data`、`mcp-data` 和 `litellm-data` 中，每次容器啟動時會重新複製。
 
@@ -55,7 +59,7 @@ docker compose down
 mkdir -p backups
 
 # 備份所有磁碟區
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   if docker volume inspect "$vol" >/dev/null 2>&1; then
     echo "Backing up $vol..."
     docker run --rm \
@@ -125,6 +129,8 @@ docker compose up -d
 | `litellm-data` | ⚠️ 先停止 | 包含啟動時可能寫入的設定 |
 | `mcp-data` | ⚠️ 先停止 | 包含啟動時可能寫入的設定 |
 | `anythingllm-data` | ⚠️ 先停止 | 聊天會話期間有活躍寫入 |
+| `caddy-data` | ⚠️ 先停止 | 包含憑證、私鑰、OCSP staple 和 ACME 帳戶狀態 |
+| `caddy-config` | ⚠️ 先停止 | 可與 Caddy 一起備份，但重要性低於 `caddy-data` |
 
 ## 還原所有磁碟區
 
@@ -135,7 +141,7 @@ docker compose up -d
 docker compose down
 
 # 從備份還原所有磁碟區
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -188,7 +194,7 @@ cd docker-ai-stack
 cp -r /path/to/backups ./backups
 
 # 還原磁碟區（自動建立）
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   backup_file="backups/${vol}.tar.gz"
   if [ -f "$backup_file" ]; then
     echo "Restoring $vol..."
@@ -238,7 +244,7 @@ docker compose up -d
 
 - **模型權重**（在 `ollama-data` 中）可能很大（每個模型數 GB）。僅在重新下載不便時才需備份（網速慢、自訂微調模型）。
 - **模型快取**（`embeddings-data`、`whisper-data`、`whisper-live-data`、`kokoro-data`、`docling-data`）在首次啟動時自動下載。如果頻寬不是問題，可以略過備份 — 它們會被重新下載。
-- **關鍵磁碟區**，應始終備份：`ollama-data`（如有自訂模型）、`litellm-data`、`litellm-db`、`mcp-data`（包含 API 金鑰和設定）以及 `anythingllm-data`（聊天記錄和工作區）。
+- **關鍵磁碟區**，應始終備份：`ollama-data`（如有自訂模型）、`litellm-data`、`litellm-db`、`mcp-data`（包含 API 金鑰和設定）、`anythingllm-data`（聊天記錄和工作區），以及 `caddy-data`（如果使用 HTTPS 代理疊加檔案）。
 - 備份檔案是標準的 `.tar.gz` 壓縮檔。可以使用以下命令檢視內容：`tar tzf backups/ollama-data.tar.gz`
 
 ### 各堆疊使用的卷
@@ -253,3 +259,4 @@ docker compose up -d
 | rag-pipeline-full | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `docling-data`, `ollama-shared` |
 | code-assistant | `ollama-data`, `litellm-data`, `litellm-db`, `embeddings-data`, `mcp-data`, `ollama-shared`, `mcp-shared` |
 | ai-tools | `ollama-data`, `litellm-data`, `litellm-db`, `mcp-data`, `ollama-shared`, `mcp-shared` |
+| HTTPS 代理疊加檔案 | `caddy-data`, `caddy-config` |

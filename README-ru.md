@@ -13,7 +13,8 @@
 Включает Ollama, LiteLLM, AnythingLLM, Whisper, MCP Gateway, Embeddings, Docling и Kokoro — полностью сконфигурирован и готов к запуску с Docker Compose.
 
 - Без настройки: все сервисы автоматически конфигурируются при первом запуске
-- Безопасность: Ollama, LiteLLM и MCP Gateway автоматически генерируют API-ключи
+- Безопасность: защита AnythingLLM паролем включена по умолчанию, а Ollama, LiteLLM и MCP Gateway автоматически генерируют API-ключи
+- Готовность к HTTPS: опциональный Caddy overlay предоставляет автоматический TLS и привязывает прямые HTTP-порты к localhost
 - Приватность: по умолчанию работает локально с опциональной поддержкой внешних провайдеров через LiteLLM
 - Опциональная авторизация: Whisper, WhisperLive, Kokoro, Embeddings и Docling работают без API-ключей по умолчанию (задайте ключи через env-файлы для публичных развёртываний)
 - [Облегчённые стеки](#облегчённые-стеки) с меньшими требованиями к памяти (от ~4.5 ГБ)
@@ -106,7 +107,7 @@ docker compose logs anythingllm | grep -A2 "FIRST RUN"
 docker exec anythingllm cat /app/server/storage/.initial_admin_password
 ```
 
-> **Совет:** При предоставлении доступа к AnythingLLM за пределами `localhost` или доверенной локальной сети размещайте его за обратным прокси с TLS, чтобы пароль шифровался при передаче. Для развёртываний с выходом в интернет также измените `"3001:3001/tcp"` и `"4000:4000/tcp"` на `"127.0.0.1:3001:3001/tcp"` и `"127.0.0.1:4000:4000/tcp"` в `docker-compose.yml`, чтобы предотвратить прямой доступ к незашифрованным портам. См. ниже [Развёртывание с доступом из интернета](#развёртывание-с-доступом-из-интернета).
+> **Совет:** При предоставлении доступа к AnythingLLM за пределами `localhost` или доверенной локальной сети используйте включённый Caddy HTTPS overlay, чтобы пароль шифровался при передаче, а прямые HTTP-порты были привязаны к localhost. См. ниже [Развёртывание с доступом из интернета](#развёртывание-с-доступом-из-интернета).
 
 **Доступ к панели администратора LiteLLM:**
 
@@ -503,7 +504,44 @@ AnythingLLM настраивается через веб-интерфейс по
 
 ## Развёртывание с доступом из интернета
 
-По умолчанию все сервисы слушают по незашифрованному HTTP. Для развёртываний с доступом из интернета установите обратный прокси (например, [Caddy](https://caddyserver.com/), Nginx или Traefik) перед стеком для обеспечения HTTPS. Каждый репозиторий сервиса содержит подробное [руководство по обратному прокси](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md#использование-обратного-прокси) с примерами для Caddy и nginx. Стек [chat-ui](stacks/chat-ui/README-ru.md) также содержит раздел по обратному прокси для AnythingLLM.
+По умолчанию все сервисы слушают по незашифрованному HTTP. Для развёртываний с доступом из интернета можно использовать включённый Caddy overlay для автоматического HTTPS. В режиме прокси Caddy является единственным публичным слушателем на портах `80` и `443`; прямые порты AnythingLLM и LiteLLM заново привязываются к `127.0.0.1`.
+
+Требования:
+
+- Docker Compose `2.24.4+` (требуется для переопределения портов в proxy overlay)
+- DNS-запись `A`/`AAAA` для вашего домена указывает на этот сервер
+- В firewall/security group открыты входящие `80/tcp`, `443/tcp` и желательно `443/udp`
+- На хосте нет другого сервиса, уже использующего порты `80` или `443`
+
+**CPU-стек:**
+
+```bash
+DOMAIN=chat.example.com ACME_EMAIL=you@example.com \
+  docker compose -f docker-compose.yml -f docker-compose.proxy.yml up -d
+```
+
+**CUDA-стек:**
+
+```bash
+DOMAIN=chat.example.com ACME_EMAIL=you@example.com \
+  docker compose -f docker-compose.cuda.yml -f docker-compose.proxy.yml up -d
+```
+
+Откройте `https://chat.example.com` (замените на ваш `DOMAIN`) для доступа к AnythingLLM. В режиме прокси `http://127.0.0.1:3001` и `http://127.0.0.1:4000/ui` остаются доступны на самом хосте, но прямые порты `3001` и `4000` недоступны извне сервера.
+
+Стандартные compose-файлы публикуют LiteLLM на порту `4000`. Proxy overlay меняет этот прямой порт на доступный только через localhost, а включённый Caddyfile по умолчанию маршрутизирует только AnythingLLM. Если раскомментировать опциональный блок с отдельным hostname для LiteLLM, LiteLLM будет открыт через Caddy, поэтому храните мастер-ключ LiteLLM в секрете.
+
+Диагностика:
+
+```bash
+docker logs ai-stack-caddy
+# Используйте те же файлы -f, с которыми запускали стек
+docker compose -f docker-compose.yml -f docker-compose.proxy.yml ps
+```
+
+Если Caddy сообщает о неизвестной директиве `request_body`, загрузите текущий образ `caddy:2` и перезапустите overlay.
+
+Пользователи старых версий Docker Compose или Podman по-прежнему могут использовать обратный прокси на хосте: привяжите прямые HTTP-порты к localhost (например, `"127.0.0.1:3001:3001/tcp"` и `"127.0.0.1:4000:4000/tcp"`) и проксируйте на эти localhost-порты. Каждый репозиторий сервиса содержит подробное [руководство по обратному прокси](https://github.com/hwdsl2/docker-whisper/blob/main/README-ru.md#использование-обратного-прокси) с примерами для Caddy и nginx.
 
 При открытии сервисов в интернет установите API-ключи для сервисов с опциональной авторизацией (Whisper, WhisperLive, Kokoro, Embeddings, Docling) через соответствующие env-файлы.
 
@@ -521,7 +559,7 @@ docker exec mcp mcp_manage --showkey
 # Остановка и удаление всех контейнеров (данные сохраняются в Docker-томах)
 docker compose down
 mkdir -p backups
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   docker volume inspect "$vol" >/dev/null 2>&1 && \
     docker run --rm -v "${vol}:/source:ro" -v "$(pwd)/backups:/backup" \
       alpine tar czf "/backup/${vol}.tar.gz" -C /source .

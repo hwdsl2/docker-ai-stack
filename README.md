@@ -13,7 +13,8 @@
 Includes Ollama, LiteLLM, AnythingLLM, Whisper, MCP Gateway, Embeddings, Docling, and Kokoro — fully configured and ready to run with Docker Compose.
 
 - Zero-config: all services auto-configure on first start
-- Secure: Ollama, LiteLLM, and MCP Gateway generate API keys automatically
+- Secure: AnythingLLM password protection is enabled by default, and Ollama, LiteLLM, and MCP Gateway generate API keys automatically
+- HTTPS-ready: optional Caddy overlay provides automatic TLS and binds direct HTTP ports to localhost
 - Private: runs locally by default with optional external provider support via LiteLLM
 - Optional auth: Whisper, WhisperLive, Kokoro, Embeddings, and Docling work without API keys by default (set keys via env files for public deployments)
 - [Lightweight stacks](#lightweight-stacks) for lower memory requirements (as low as ~4.5 GB)
@@ -106,7 +107,7 @@ docker compose logs anythingllm | grep -A2 "FIRST RUN"
 docker exec anythingllm cat /app/server/storage/.initial_admin_password
 ```
 
-> **Tip:** When exposing AnythingLLM beyond `localhost` or a trusted LAN, put it behind a reverse proxy with TLS so the password is encrypted in transit. For internet-facing deployments, also change `"3001:3001/tcp"` and `"4000:4000/tcp"` to `"127.0.0.1:3001:3001/tcp"` and `"127.0.0.1:4000:4000/tcp"` in `docker-compose.yml` to prevent direct access to unencrypted ports. See [Internet-facing deployments](#internet-facing-deployments) below.
+> **Tip:** When exposing AnythingLLM beyond `localhost` or a trusted LAN, use the included Caddy HTTPS overlay so the password is encrypted in transit and direct HTTP ports are bound to localhost. See [Internet-facing deployments](#internet-facing-deployments) below.
 
 **Access the LiteLLM Admin UI:**
 
@@ -503,7 +504,44 @@ For detailed configuration options, API reference, and model management, see the
 
 ## Internet-facing deployments
 
-By default, all services listen over plain HTTP. For internet-facing deployments, place a reverse proxy (e.g., [Caddy](https://caddyserver.com/), Nginx, or Traefik) in front of the stack to provide HTTPS. Each service repository includes a detailed [reverse proxy guide](https://github.com/hwdsl2/docker-whisper#using-a-reverse-proxy) with Caddy and nginx examples. The [chat-ui](stacks/chat-ui/) stack also includes a reverse proxy section specific to AnythingLLM.
+By default, all services listen over plain HTTP. For internet-facing deployments, use the included Caddy overlay to add automatic HTTPS. In proxy mode, Caddy is the only public listener on ports `80` and `443`; the direct AnythingLLM and LiteLLM ports are rebound to `127.0.0.1`.
+
+Prerequisites:
+
+- Docker Compose `2.24.4+` (required for the proxy overlay's port override)
+- A DNS `A`/`AAAA` record for your domain pointing to this server
+- Inbound `80/tcp`, `443/tcp`, and ideally `443/udp` open in your firewall/security group
+- No other service already using ports `80` or `443` on the host
+
+**CPU stack:**
+
+```bash
+DOMAIN=chat.example.com ACME_EMAIL=you@example.com \
+  docker compose -f docker-compose.yml -f docker-compose.proxy.yml up -d
+```
+
+**CUDA stack:**
+
+```bash
+DOMAIN=chat.example.com ACME_EMAIL=you@example.com \
+  docker compose -f docker-compose.cuda.yml -f docker-compose.proxy.yml up -d
+```
+
+Open `https://chat.example.com` (replace with your `DOMAIN`) to access AnythingLLM. In proxy mode, `http://127.0.0.1:3001` and `http://127.0.0.1:4000/ui` remain available on the host, but the direct `3001` and `4000` ports are not reachable from outside the server.
+
+The standard compose files publish LiteLLM on port `4000`. The proxy overlay changes that direct port to localhost-only, and the included Caddyfile routes only AnythingLLM by default. Uncommenting the optional LiteLLM hostname block exposes LiteLLM through Caddy, so keep the LiteLLM master key secret.
+
+Troubleshooting:
+
+```bash
+docker logs ai-stack-caddy
+# Use the same -f files you used to start the stack
+docker compose -f docker-compose.yml -f docker-compose.proxy.yml ps
+```
+
+If Caddy reports an unknown `request_body` directive, pull the current `caddy:2` image and restart the overlay.
+
+For older Docker Compose versions or Podman, use a host-based reverse proxy instead: bind direct HTTP ports to localhost in the compose file (for example, `"127.0.0.1:3001:3001/tcp"` and `"127.0.0.1:4000:4000/tcp"`) and proxy to those localhost ports. Each service repository includes a detailed [reverse proxy guide](https://github.com/hwdsl2/docker-whisper#using-a-reverse-proxy) with Caddy and nginx examples.
 
 When exposing services to the internet, set API keys for services that are optional-auth by default (Whisper, WhisperLive, Kokoro, Embeddings, Docling) via their respective env files.
 
@@ -521,7 +559,7 @@ docker exec mcp mcp_manage --showkey
 # Stop and remove all containers (data is preserved in Docker volumes)
 docker compose down
 mkdir -p backups
-for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data; do
+for vol in ollama-data litellm-data litellm-db embeddings-data whisper-data whisper-live-data kokoro-data mcp-data docling-data anythingllm-data caddy-data caddy-config; do
   docker volume inspect "$vol" >/dev/null 2>&1 && \
     docker run --rm -v "${vol}:/source:ro" -v "$(pwd)/backups:/backup" \
       alpine tar czf "/backup/${vol}.tar.gz" -C /source .

@@ -2,6 +2,17 @@
 
 All notable changes to docker-ai-stack are documented here.
 
+## 2026-06-07
+
+### Added
+
+- **Optional Caddy HTTPS overlay.** Internet-facing deployments can now run
+  `docker-compose.proxy.yml` with the root stack or the `chat-ui` /
+  `voice-chat` sub-stacks to get automatic HTTPS for AnythingLLM. The overlay
+  starts Caddy on ports `80`/`443`, persists certificate state in
+  `caddy-data`, and binds the direct AnythingLLM and LiteLLM ports to
+  `127.0.0.1` while leaving the default local/LAN quickstart unchanged.
+
 ## 2026-06-06
 
 ### Added
