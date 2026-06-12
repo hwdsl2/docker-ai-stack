@@ -7,8 +7,8 @@ All notable changes to docker-ai-stack are documented here.
 ### Added
 
 - Added Docker healthchecks for LiteLLM across the root stack and all
-  lightweight stacks. AnythingLLM now waits for LiteLLM to become healthy
-  before starting, reducing first-run connection races.
+  lightweight stacks, improving readiness visibility without delaying
+  dependent service startup.
 - Added a PostgreSQL readiness check to `stack-check.sh`.
 
 ### Changed
