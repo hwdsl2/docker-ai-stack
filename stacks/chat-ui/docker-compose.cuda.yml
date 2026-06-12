@@ -55,7 +55,7 @@ services:
       test: ["CMD", "curl", "-sf", "http://127.0.0.1:4000/health/liveliness"]
       interval: 15s
       timeout: 5s
-      start_period: 180s
+      start_period: 300s
       retries: 5
     depends_on:
       ollama:
@@ -86,7 +86,7 @@ services:
     #   - SYS_ADMIN  # Uncomment if you need AnythingLLM's built-in web scraping (uses Chromium)
     depends_on:
       litellm:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   ollama-data:

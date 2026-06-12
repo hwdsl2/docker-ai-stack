@@ -19,7 +19,7 @@ services:
       anythingllm:
         condition: service_started
       litellm:
-        condition: service_healthy
+        condition: service_started
 
   anythingllm:
     ports: !override
