@@ -32,6 +32,74 @@ if [ -d /var/lib/litellm-shared ]; then
   fi
 fi
 
+valid_admin_pass() {
+  printf '%s' "$1" | grep -Eq '^[A-HJ-NPR-Za-km-z2-9]{20}$'
+}
+
+valid_jwt_secret() {
+  printf '%s' "$1" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+}
+
+generate_admin_pass() {
+  PASS=$(node -e '
+const crypto = require("crypto");
+const alphabet = "ABCDEFGHJKLMNPRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+const length = 20;
+const limit = Math.floor(256 / alphabet.length) * alphabet.length;
+let out = "";
+while (out.length < length) {
+  for (const byte of crypto.randomBytes(32)) {
+    if (byte >= limit) continue;
+    out += alphabet[byte % alphabet.length];
+    if (out.length === length) break;
+  }
+}
+console.log(out);
+' 2>/dev/null)
+  if valid_admin_pass "$PASS"; then
+    printf '%s\n' "$PASS"
+    return 0
+  fi
+
+  PASS=$(LC_CTYPE=C tr -dc 'A-HJ-NPR-Za-km-z2-9' </dev/urandom 2>/dev/null | head -c 20)
+  if valid_admin_pass "$PASS"; then
+    printf '%s\n' "$PASS"
+    return 0
+  fi
+
+  return 1
+}
+
+generate_jwt_secret() {
+  JWT=$(node -e 'console.log(require("crypto").randomUUID())' 2>/dev/null)
+  if valid_jwt_secret "$JWT"; then
+    printf '%s\n' "$JWT"
+    return 0
+  fi
+
+  if [ -r /proc/sys/kernel/random/uuid ]; then
+    JWT=$(cat /proc/sys/kernel/random/uuid)
+    if valid_jwt_secret "$JWT"; then
+      printf '%s\n' "$JWT"
+      return 0
+    fi
+  fi
+
+  HEX=$(LC_CTYPE=C tr -dc '0-9a-f' </dev/urandom 2>/dev/null | head -c 32)
+  if [ "${#HEX}" -eq 32 ]; then
+    VARIANT_INDEX=$((0x${HEX:16:1} % 4))
+    VARIANT=$(printf '%s' "89ab" | cut -c $((VARIANT_INDEX + 1)))
+    JWT=$(printf '%s-%s-4%s-%s%s-%s\n' \
+      "${HEX:0:8}" "${HEX:8:4}" "${HEX:13:3}" "$VARIANT" "${HEX:17:3}" "${HEX:20:12}")
+    if valid_jwt_secret "$JWT"; then
+      printf '%s\n' "$JWT"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
 # Persist server/.env across container recreation via anythingllm-data volume
 STORAGE_DIR=/app/server/storage
 PERSISTENT_ENV="$STORAGE_DIR/.env"
@@ -50,43 +118,37 @@ if [ ! -f "$PERSISTENT_ENV" ]; then
   # AnythingLLM runs `prisma migrate deploy` on every boot, so absence of
   # anythingllm.db proves this volume has never been used.
   if [ ! -f "$STORAGE_DIR/anythingllm.db" ]; then
-    ADMIN_PASS=$(LC_CTYPE=C tr -dc 'A-HJ-NPR-Za-km-z2-9' </dev/urandom 2>/dev/null | head -c 20)
+    ADMIN_PASS=$(generate_admin_pass)
+    JWT_SEC=$(generate_jwt_secret)
 
-    if [ -r /proc/sys/kernel/random/uuid ]; then
-      JWT_SEC=$(cat /proc/sys/kernel/random/uuid)
-    else
-      HEX=$(LC_CTYPE=C tr -dc '0-9a-f' </dev/urandom 2>/dev/null | head -c 32)
-      if [ "${#HEX}" -eq 32 ]; then
-        JWT_SEC="${HEX:0:8}-${HEX:8:4}-4${HEX:13:3}-8${HEX:17:3}-${HEX:20:12}"
-      fi
+    if ! valid_admin_pass "$ADMIN_PASS" || ! valid_jwt_secret "$JWT_SEC"; then
+      echo "ERROR: Failed to generate AnythingLLM admin password or JWT secret." >&2
+      echo "Refusing to start AnythingLLM without authentication." >&2
+      echo "Check that the container has access to Node.js crypto or a working entropy source." >&2
+      sleep 10
+      exit 1
     fi
 
-    if [ -z "$ADMIN_PASS" ] || [ -z "$JWT_SEC" ]; then
-      echo "ERROR: Failed to generate admin password / JWT secret." >&2
-      echo "Skipping password seeding. AnythingLLM will start without auth." >&2
-      echo "To set a password manually, log in and visit Settings -> Security." >&2
-    else
-      cat >> "$PERSISTENT_ENV" <<EOF
+    cat >> "$PERSISTENT_ENV" <<EOF
 AUTH_TOKEN='$ADMIN_PASS'
 JWT_SECRET='$JWT_SEC'
 EOF
-      echo "$ADMIN_PASS" > "$STORAGE_DIR/.initial_admin_password"
-      chmod 600 "$STORAGE_DIR/.initial_admin_password" 2>/dev/null || true
+    echo "$ADMIN_PASS" > "$STORAGE_DIR/.initial_admin_password"
+    chmod 600 "$STORAGE_DIR/.initial_admin_password" 2>/dev/null || true
 
-      printf '\n'
-      printf '================================================================\n'
-      printf '  AnythingLLM admin password (FIRST RUN - shown once)\n'
-      printf '\n'
-      printf '      %s\n' "$ADMIN_PASS"
-      printf '\n'
-      printf '  Open http://<server-ip>:3001 and use this password to log in.\n'
-      printf '\n'
-      printf '  Retrieve later from inside the container:\n'
-      printf '    docker exec anythingllm cat /app/server/storage/.initial_admin_password\n'
-      printf '  Change it any time: log in -> Settings -> Security\n'
-      printf '================================================================\n'
-      printf '\n'
-    fi
+    printf '\n'
+    printf '================================================================\n'
+    printf '  AnythingLLM admin password (FIRST RUN - shown once)\n'
+    printf '\n'
+    printf '      %s\n' "$ADMIN_PASS"
+    printf '\n'
+    printf '  Open http://<server-ip>:3001 and use this password to log in.\n'
+    printf '\n'
+    printf '  Retrieve later from inside the container:\n'
+    printf '    docker exec anythingllm cat /app/server/storage/.initial_admin_password\n'
+    printf '  Change it any time: log in -> Settings -> Security\n'
+    printf '================================================================\n'
+    printf '\n'
   fi
 fi
 ln -sf "$PERSISTENT_ENV" "$LIVE_ENV"
