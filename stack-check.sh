@@ -149,6 +149,27 @@ fi
 
 echo ""
 
+# ── PostgreSQL (LiteLLM DB) ─────────────────────────────
+DB=$(find_service "litellm-db" "pgvector/pgvector")
+if [ -z "$DB" ]; then
+  DB=$(find_service "litellm-db" "postgres")
+fi
+if [ -n "$DB" ]; then
+  info "PostgreSQL ($DB)"
+
+  pass "Container running"
+
+  if "$ENGINE" exec "$DB" pg_isready -U litellm >/dev/null 2>&1; then
+    pass "Database accepts connections"
+  else
+    fail "Database is not ready for user litellm"
+  fi
+else
+  info "PostgreSQL — not running (skipped)"
+fi
+
+echo ""
+
 # ── LiteLLM ─────────────────────────────────────────────
 LITELLM=$(find_service "litellm" "hwdsl2/litellm-server")
 if [ -n "$LITELLM" ]; then
