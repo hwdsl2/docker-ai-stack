@@ -74,6 +74,8 @@ Run the health check to verify all services are working:
 
 > **Tip:** On first start, services may take a few minutes to initialize. If any checks fail, wait and run `./stack-check.sh` again. Use `docker compose logs` to check progress.
 
+For detailed troubleshooting, see the [Troubleshooting](docs/troubleshooting.md) guide.
+
 **Get the LiteLLM master key** (used to log into the Admin UI and for LLM requests):
 
 ```bash
